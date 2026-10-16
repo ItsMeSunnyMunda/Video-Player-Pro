@@ -26,8 +26,8 @@ android {
 
     buildConfigField("String", "GIT_SHA", "\"${getCommitSha()}\"")
     buildConfigField("int", "GIT_COUNT", getCommitCount())
-    // Enable update feature by default
-    buildConfigField("boolean", "ENABLE_UPDATE_FEATURE", "true")
+    // Disable update feature
+    buildConfigField("boolean", "ENABLE_UPDATE_FEATURE", "false")
     buildConfigField("boolean", "SCOPED_STORAGE_ONLY", "false")
     buildConfigField("boolean", "IS_PREVIEW", "false")
   }

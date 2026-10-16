@@ -204,59 +204,22 @@ object MainScreen : Screen {
     val networkLabel = stringResource(R.string.network)
 
     val visibleTabs = remember(
-      isShortsEnabled, enableTabYou, enableTabRecents, enableTabPlaylists, enableTabNetwork,
-      bottomNavOrder,
-      homeLabel, shortsLabel, youLabel, recentsLabel, playlistsLabel, networkLabel
+      enableTabRecents,
+      homeLabel, recentsLabel
     ) {
-      val rawTabs = buildList {
+      buildList {
         add(
           VisibleTab("home", homeLabel, Icons.Filled.Home) {
             FolderListScreen.Content()
           }
         )
-        if (isShortsEnabled) {
+        if (enableTabRecents) {
           add(
-            VisibleTab("shorts", shortsLabel, Icons.Outlined.VideoLibrary) {
-              ShortsScreen().Content()
+            VisibleTab("recents", recentsLabel, Icons.Filled.History) {
+              RecentlyPlayedScreen.Content()
             }
           )
         }
-        if (!enableTabYou) {
-          if (enableTabRecents) {
-            add(
-              VisibleTab("recents", recentsLabel, Icons.Filled.History) {
-                RecentlyPlayedScreen.Content()
-              }
-            )
-          }
-          if (enableTabPlaylists) {
-            add(
-              VisibleTab("playlists", playlistsLabel, Icons.AutoMirrored.Filled.PlaylistPlay) {
-                PlaylistScreen.Content()
-              }
-            )
-          }
-        }
-        if (enableTabNetwork) {
-          add(
-            VisibleTab("network", networkLabel, Icons.Filled.Language) {
-              NetworkStreamingScreen.Content()
-            }
-          )
-        }
-        if (enableTabYou) {
-          add(
-            VisibleTab("you", youLabel, Icons.Filled.AccountCircle) {
-              YouScreen.Content()
-            }
-          )
-        }
-      }
-
-      val orderList = browserPreferences.getBottomNavOrder()
-      rawTabs.sortedBy { tab ->
-        val idx = orderList.indexOf(tab.id)
-        if (idx == -1) Int.MAX_VALUE else idx
       }
     }
 
@@ -265,18 +228,6 @@ object MainScreen : Screen {
       if (selectedTab >= visibleTabs.size) {
         selectedTab = 0
       }
-    }
-
-    // Intercept back button when on Shorts tab to return to Home or previous tab
-    val shortsIdx = visibleTabs.indexOfFirst { it.id == "shorts" }
-    val homeIdx = visibleTabs.indexOfFirst { it.id == "home" }
-    androidx.activity.compose.BackHandler(enabled = shortsIdx != -1 && selectedTab == shortsIdx) {
-      val targetTab = when {
-        previousTab != shortsIdx && previousTab in visibleTabs.indices -> previousTab
-        homeIdx != -1 -> homeIdx
-        else -> visibleTabs.indices.firstOrNull { it != shortsIdx } ?: 0
-      }
-      selectedTab = targetTab
     }
 
     // Shared state (across the app) collected reactively via StateFlow
@@ -291,7 +242,6 @@ object MainScreen : Screen {
         previousTab = persistentSelectedTab
         persistentPreviousTab = previousTab
       }
-      android.util.Log.d("MainScreen", "selectedTab changed to: $selectedTab (was ${persistentSelectedTab}), previousTab is $previousTab")
       persistentSelectedTab = selectedTab
     }
 
@@ -302,67 +252,12 @@ object MainScreen : Screen {
       }
     }
 
-    // Community Hub auto-popup: Phase 1 (initial 1 min test threshold) / Phase 2 (15 days after "Already joined")
-    val isCommunityPromptPermanentlyDismissed by appearancePreferences.communityPromptDismissedPermanently.collectAsState()
-    val firstOpenTimestamp by appearancePreferences.communityFirstAppOpenTimestamp.collectAsState()
-    val alreadyJoinedTimestamp by appearancePreferences.communityAlreadyJoinedTimestamp.collectAsState()
-    var showCommunityAutoPopup by remember { mutableStateOf(false) }
-    var isFollowupPrompt by remember { mutableStateOf(false) }
-    var hasDismissedThisSession by rememberSaveable { mutableStateOf(false) }
-
-    LaunchedEffect(Unit) {
-      if (firstOpenTimestamp == 0L) {
-        appearancePreferences.communityFirstAppOpenTimestamp.set(System.currentTimeMillis())
-      }
-    }
-
-    val isHomeTabActive = selectedTab in visibleTabs.indices && visibleTabs[selectedTab].id == "home"
-
-    LaunchedEffect(
-      isHomeTabActive,
-      isCommunityPromptPermanentlyDismissed,
-      hasDismissedThisSession,
-      firstOpenTimestamp,
-      alreadyJoinedTimestamp
-    ) {
-      if (isHomeTabActive && !isCommunityPromptPermanentlyDismissed && !hasDismissedThisSession) {
-        val (remainingDelay, isFollowup) = if (alreadyJoinedTimestamp > 0L) {
-          // Phase 2: User clicked "Already joined" in the past -> wait 10 days before follow-up
-          val followupCooldownMs = 10L * 24 * 60 * 60 * 1000L // 10 days
-          val elapsed = System.currentTimeMillis() - alreadyJoinedTimestamp
-          val remaining = (followupCooldownMs - elapsed).coerceAtLeast(0L)
-          remaining to true
-        } else {
-          // Phase 1: User hasn't clicked "Already joined" yet -> wait initial threshold (20 minutes)
-          val initialDelayMs = 20 * 60 * 1000L // 20 minutes
-          val currentFirstOpen = if (firstOpenTimestamp == 0L) System.currentTimeMillis() else firstOpenTimestamp
-          val elapsed = System.currentTimeMillis() - currentFirstOpen
-          val remaining = (initialDelayMs - elapsed).coerceAtLeast(0L)
-          remaining to false
-        }
-
-        if (remainingDelay > 0L) {
-          kotlinx.coroutines.delay(remainingDelay)
-        }
-
-        if (isHomeTabActive && !isCommunityPromptPermanentlyDismissed && !hasDismissedThisSession) {
-          isFollowupPrompt = isFollowup
-          showCommunityAutoPopup = true
-        }
-      }
-    }
-
     // Scaffold with bottom navigation bar
     Scaffold(
       modifier = Modifier.fillMaxSize(),
       bottomBar = {
-        // Animated bottom navigation bar with slide animations
-        // Also hide if Shorts tab is active (index 1 when enabled, index -1 when disabled)
-        val shortsIdx = visibleTabs.indexOfFirst { it.id == "shorts" }
-        val isShortsTabActive = isShortsEnabled && shortsIdx != -1 && selectedTab == shortsIdx
-        
         AnimatedVisibility(
-            visible = !hideNavigationBar && !isShortsTabActive && visibleTabs.size > 1,
+            visible = !hideNavigationBar && visibleTabs.size > 1,
             enter = slideInVertically(
               animationSpec = tween(durationMillis = 300),
               initialOffsetY = { fullHeight -> fullHeight }
@@ -373,48 +268,21 @@ object MainScreen : Screen {
             )
           ) {
             NavigationBar(
-              containerColor = if (isShortsTabActive) Color.Transparent else MaterialTheme.colorScheme.surfaceContainer,
-              contentColor = if (isShortsTabActive) Color.White else MaterialTheme.colorScheme.onSurface,
+              containerColor = MaterialTheme.colorScheme.surfaceContainer,
+              contentColor = MaterialTheme.colorScheme.onSurface,
             ) {
-              val itemColors = if (isShortsTabActive) {
-                NavigationBarItemDefaults.colors(
-                  selectedIconColor = Color.White,
-                  selectedTextColor = Color.White,
-                  unselectedIconColor = Color.White.copy(alpha = 0.7f),
-                  unselectedTextColor = Color.White.copy(alpha = 0.7f),
-                  indicatorColor = Color.White.copy(alpha = 0.2f),
-                )
-              } else {
-                NavigationBarItemDefaults.colors(
-                  selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                  selectedTextColor = MaterialTheme.colorScheme.onSurface,
-                  indicatorColor = MaterialTheme.colorScheme.secondaryContainer,
-                  unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                  unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-              }
+              val itemColors = NavigationBarItemDefaults.colors(
+                selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                selectedTextColor = MaterialTheme.colorScheme.onSurface,
+                indicatorColor = MaterialTheme.colorScheme.secondaryContainer,
+                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+              )
 
               visibleTabs.forEachIndexed { index, tab ->
-                val isYouTabWithCustomAvatar = tab.id == "you" && customAvatarBitmap != null
                 NavigationBarItem(
                   icon = {
-                    if (isYouTabWithCustomAvatar) {
-                      Image(
-                        bitmap = customAvatarBitmap!!,
-                        contentDescription = tab.label,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                          .size(24.dp)
-                          .clip(CircleShape)
-                          .border(
-                            width = if (selectedTab == index) 1.5.dp else 1.dp,
-                            color = if (selectedTab == index) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                            shape = CircleShape,
-                          ),
-                      )
-                    } else {
-                      Icon(tab.icon, contentDescription = tab.label)
-                    }
+                    Icon(tab.icon, contentDescription = tab.label)
                   },
                   label = { Text(tab.label) },
                   selected = selectedTab == index,
@@ -494,10 +362,7 @@ object MainScreen : Screen {
           },
           label = "tab_animation"
         ) { targetTab ->
-          val shortsIdx = visibleTabs.indexOfFirst { it.id == "shorts" }
-          val isShortsTabActive = isShortsEnabled && shortsIdx != -1 && selectedTab == shortsIdx
-          val isNavBarVisible = !hideNavigationBar && !isShortsTabActive && visibleTabs.size > 1
-          
+          val isNavBarVisible = !hideNavigationBar && visibleTabs.size > 1
           val navBarHeight = if (isNavBarVisible) 80.dp else 0.dp
           val miniPlayerHeight = if (miniPlayerState.isPlaybackActive) MiniPlayerDefaults.CompactHeight else 0.dp
           val totalBottomPadding = navBarHeight + miniPlayerHeight
@@ -513,16 +378,6 @@ object MainScreen : Screen {
           }
         }
       }
-    }
-
-    if (showCommunityAutoPopup && !isCommunityPromptPermanentlyDismissed) {
-      CommunityLinksDialog(
-        isFollowupPrompt = isFollowupPrompt,
-        onDismissRequest = {
-          hasDismissedThisSession = true
-          showCommunityAutoPopup = false
-        }
-      )
     }
   }
 }

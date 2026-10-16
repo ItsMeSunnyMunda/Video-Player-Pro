@@ -378,17 +378,7 @@ object AppearancePreferencesScreen : Screen {
                                             onValueChange = {}
                                         )
                                     )
-                                    "shorts" -> items.add(
-                                        BottomNavTabItem(
-                                            id = "shorts",
-                                            titleRes = R.string.pref_appearance_tab_shorts_title,
-                                            summaryRes = R.string.pref_appearance_tab_shorts_summary,
-                                            value = enableShorts,
-                                            enabled = true,
-                                            onValueChange = { browserPreferences.enableShorts.set(it) }
-                                        )
-                                    )
-                                    "recents" -> if (!enableTabYou) {
+                                    "recents" -> {
                                         items.add(
                                             BottomNavTabItem(
                                                 id = "recents",
@@ -400,38 +390,6 @@ object AppearancePreferencesScreen : Screen {
                                             )
                                         )
                                     }
-                                    "playlists" -> if (!enableTabYou) {
-                                        items.add(
-                                            BottomNavTabItem(
-                                                id = "playlists",
-                                                titleRes = R.string.pref_appearance_tab_playlists_title,
-                                                summaryRes = R.string.pref_appearance_tab_playlists_summary,
-                                                value = enableTabPlaylists,
-                                                enabled = true,
-                                                onValueChange = { browserPreferences.enableTabPlaylists.set(it) }
-                                            )
-                                        )
-                                    }
-                                    "network" -> items.add(
-                                        BottomNavTabItem(
-                                            id = "network",
-                                            titleRes = R.string.pref_appearance_tab_network_title,
-                                            summaryRes = R.string.pref_appearance_tab_network_summary,
-                                            value = enableTabNetwork,
-                                            enabled = true,
-                                            onValueChange = { browserPreferences.enableTabNetwork.set(it) }
-                                        )
-                                    )
-                                    "you" -> items.add(
-                                        BottomNavTabItem(
-                                            id = "you",
-                                            titleRes = R.string.pref_appearance_tab_you_title,
-                                            summaryRes = R.string.pref_appearance_tab_you_summary,
-                                            value = enableTabYou,
-                                            enabled = true,
-                                            onValueChange = { browserPreferences.enableTabYou.set(it) }
-                                        )
-                                    )
                                 }
                             }
                             items

@@ -375,13 +375,7 @@ data class SearchScreen(
                   }
                 )
               )
-              add(
-                SelectionOverflowAction(
-                  icon = Icons.Filled.Share,
-                  label = stringResource(R.string.web_share_title),
-                  onClick = { showWebShareSheet = true }
-                )
-              )
+
               val selectedVideos = videoSelectionManager.getSelectedItems()
               val selectedFolders = folderSelectionManager.getSelectedItems()
               if (selectedVideos.isNotEmpty() || selectedFolders.isNotEmpty()) {

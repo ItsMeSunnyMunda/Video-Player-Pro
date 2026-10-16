@@ -349,33 +349,7 @@
             android:exported="false"
             android:grantUriPermissions="true" />
 
-        <service
-            android:name=".feature.webshare.WebShareService"
-            android:exported="false"
-            android:foregroundServiceType="dataSync" />
 
-        <activity
-            android:name=".feature.webshare.WebShareActivity"
-            android:exported="true"
-            android:theme="@style/Theme.mpvex.Transparent"
-            android:label="Web Share">
-            <intent-filter>
-                <action android:name="android.intent.action.SEND" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:mimeType="video/*" />
-                <data android:mimeType="audio/*" />
-                <data android:mimeType="image/*" />
-                <data android:mimeType="application/*" />
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.SEND_MULTIPLE" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:mimeType="video/*" />
-                <data android:mimeType="audio/*" />
-                <data android:mimeType="image/*" />
-                <data android:mimeType="application/*" />
-            </intent-filter>
-        </activity>
 
         <service
             android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"

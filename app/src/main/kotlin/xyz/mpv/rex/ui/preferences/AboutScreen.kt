@@ -338,66 +338,7 @@ object AboutScreen : Screen {
             }
           }
 
-          Spacer(Modifier.height(8.dp))
 
-          PreferenceSectionHeader(title = stringResource(id = R.string.pref_about_telegram_title))
-          GroupedListColumn {
-            GroupedPreferenceCard(position = GroupPosition.FIRST) {
-              Preference(
-                title = { Text(text = stringResource(id = R.string.pref_about_telegram_channel)) },
-                summary = {
-                  Text(
-                    text = stringResource(id = R.string.pref_about_telegram_channel_summary),
-                    color = MaterialTheme.colorScheme.outline,
-                  )
-                },
-                icon = {
-                  Icon(
-                    imageVector = TelegramIcon,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                  )
-                },
-                onClick = {
-                  context.startActivity(
-                    Intent(
-                      Intent.ACTION_VIEW,
-                      context.getString(R.string.pref_about_telegram_url).toUri(),
-                    ),
-                  )
-                },
-              )
-            }
-
-            GroupedPreferenceCard(position = GroupPosition.LAST) {
-              Preference(
-                title = { Text(text = stringResource(id = R.string.pref_about_telegram_group)) },
-                summary = {
-                  Text(
-                    text = stringResource(id = R.string.pref_about_telegram_group_summary),
-                    color = MaterialTheme.colorScheme.outline,
-                  )
-                },
-                icon = {
-                  Icon(
-                    imageVector = TelegramIcon,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                  )
-                },
-                onClick = {
-                  context.startActivity(
-                    Intent(
-                      Intent.ACTION_VIEW,
-                      context.getString(R.string.pref_about_telegram_chat_url).toUri(),
-                    ),
-                  )
-                },
-              )
-            }
-          }
-
-          Spacer(Modifier.height(8.dp))
 
           // Updates Section
           if (BuildConfig.ENABLE_UPDATE_FEATURE) {

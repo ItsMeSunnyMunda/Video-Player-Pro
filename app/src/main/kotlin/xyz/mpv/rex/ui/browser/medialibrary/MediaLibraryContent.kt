@@ -315,13 +315,7 @@ fun MediaLibraryContent() {
                 onClick = { selectionManager.shareSelected() },
               )
             )
-            add(
-              SelectionOverflowAction(
-                icon = Icons.Filled.Share,
-                label = stringResource(R.string.web_share_title),
-                onClick = { showWebShareSheet = true },
-              )
-            )
+
             val selectedVideos = selectionManager.getSelectedItems()
             if (selectedVideos.isNotEmpty()) {
               add(

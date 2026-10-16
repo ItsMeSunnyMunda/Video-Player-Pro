@@ -88,7 +88,7 @@ class UpdateManager(
     companion object {
         const val PREVIEW_PAGE_URL = "https://mpvrex.github.io/REX-Player/"
         const val PREVIEW_JSON_URL = "https://mpvrex.github.io/REX-Player/version.json"
-        const val RELEASE_API_URL = "https://api.github.com/repos/mpvRex/REX-Player/releases/latest"
+        const val RELEASE_API_URL = "https://api.github.com/repos/ItsMeSunnyMunda/Video-Player-Pro/releases/latest"
 
         fun isPreviewBuild(): Boolean {
             return BuildConfig.IS_PREVIEW || BuildConfig.BUILD_TYPE == "preview" || BuildConfig.APPLICATION_ID.endsWith(".preview")
