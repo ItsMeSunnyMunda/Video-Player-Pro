@@ -14,15 +14,15 @@ class PlayerPreferences(
   preferenceStore: PreferenceStore,
 ) {
   val orientation = preferenceStore.getEnum("player_orientation", PlayerOrientation.Video)
-  val backgroundPlayback = preferenceStore.getEnum("background_playback_mode", BackgroundPlaybackMode.AudioOnly)
+  val backgroundPlayback = preferenceStore.getEnum("background_playback_mode", BackgroundPlaybackMode.Never)
   val invertDuration = preferenceStore.getBoolean("invert_duration")
   val holdForMultipleSpeed = preferenceStore.getFloat("hold_for_multiple_speed", 2f)
   val rememberLongPressSpeed = preferenceStore.getBoolean("remember_long_press_speed", true)
   val showDynamicSpeedOverlay = preferenceStore.getBoolean("show_dynamic_speed_overlay", true)
   val showSpeedIndicatorOverlay = preferenceStore.getBoolean("show_speed_indicator_overlay", true)
-  val showDoubleTapOvals = preferenceStore.getBoolean("show_double_tap_ovals", true)
-  val showCircularDoubleTapSeek = preferenceStore.getBoolean("show_circular_double_tap_seek", true)
-  val showSeekTimeWhileSeeking = preferenceStore.getBoolean("show_seek_time_while_seeking", true)
+  val showDoubleTapOvals = preferenceStore.getBoolean("show_double_tap_ovals", false)
+  val showCircularDoubleTapSeek = preferenceStore.getBoolean("show_circular_double_tap_seek", false)
+  val showSeekTimeWhileSeeking = preferenceStore.getBoolean("show_seek_time_while_seeking", false)
   val usePreciseSeeking = preferenceStore.getBoolean("use_precise_seeking", false)
 
   val brightnessGesture = preferenceStore.getBoolean("gestures_brightness", true)
@@ -89,8 +89,8 @@ class PlayerPreferences(
   val playbackControlsPosition = preferenceStore.getEnum("playback_controls_position", PlaybackControlsPosition.Center)
   val showSeekBarWhenSeeking = preferenceStore.getBoolean("show_seekbar_when_seeking", false)
   val whiteSeekBar = preferenceStore.getBoolean("white_seekbar", false)
-  val showSeekbarChapters = preferenceStore.getBoolean("show_seekbar_chapters", true)
-  val showSeekbarReadAhead = preferenceStore.getBoolean("show_seekbar_read_ahead", true)
+  val showSeekbarChapters = preferenceStore.getBoolean("show_seekbar_chapters", false)
+  val showSeekbarReadAhead = preferenceStore.getBoolean("show_seekbar_read_ahead", false)
   val hideOsdText = preferenceStore.getBoolean("hide_osd_text_v2", false)
 
   val customSkipDuration = preferenceStore.getInt("custom_skip_duration", 90)

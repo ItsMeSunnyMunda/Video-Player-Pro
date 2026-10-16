@@ -467,16 +467,8 @@ fun MpvexPlayerTheme(content: @Composable () -> Unit) {
     val darkTheme = isSystemInDarkTheme()
     val context = LocalContext.current
 
-    val isPlayerAlwaysDark = playerAlwaysDarkMode || enableGlassPlayerControls
-    val useDarkTheme = if (isPlayerAlwaysDark) {
-        true
-    } else {
-        when (darkMode) {
-            DarkMode.Dark -> true
-            DarkMode.Light -> false
-            DarkMode.System -> darkTheme
-        }
-    }
+    val isPlayerAlwaysDark = true
+    val useDarkTheme = true
 
     val colorScheme = when {
         appTheme.isDynamic && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {

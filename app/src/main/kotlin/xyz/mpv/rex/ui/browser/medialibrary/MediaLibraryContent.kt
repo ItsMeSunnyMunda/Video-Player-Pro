@@ -303,13 +303,6 @@ fun MediaLibraryContent() {
           selectionOverflowActions = buildList {
             add(
               SelectionOverflowAction(
-                icon = Icons.Filled.PictureInPictureAlt,
-                label = stringResource(R.string.open_with_mini_player),
-                onClick = { selectionManager.playSelectedInMiniPlayer() },
-              )
-            )
-            add(
-              SelectionOverflowAction(
                 icon = Icons.Filled.Share,
                 label = stringResource(R.string.generic_share),
                 onClick = { selectionManager.shareSelected() },

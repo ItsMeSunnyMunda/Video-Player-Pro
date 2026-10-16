@@ -72,7 +72,11 @@ val allPlayerButtons =
   PlayerButton.values().filter {
     it != PlayerButton.NONE &&
       it != PlayerButton.BACK_ARROW &&
-      it != PlayerButton.VIDEO_TITLE
+      it != PlayerButton.VIDEO_TITLE &&
+      it != PlayerButton.PICTURE_IN_PICTURE &&
+      it != PlayerButton.SCREEN_ROTATION &&
+      it != PlayerButton.ASPECT_RATIO &&
+      it != PlayerButton.BACKGROUND_PLAYBACK
   }
 
 /**

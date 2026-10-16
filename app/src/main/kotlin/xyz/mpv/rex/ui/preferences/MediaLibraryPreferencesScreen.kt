@@ -61,7 +61,6 @@ object MediaLibraryPreferencesScreen : Screen {
     val scope = rememberCoroutineScope()
 
     val includeNoMediaContent by browserPreferences.includeNoMediaContent.collectAsState()
-    val showAudioFiles by browserPreferences.showAudioFiles.collectAsState()
     val libraryScanRoots by foldersPreferences.libraryScanRoots.collectAsState()
     var showAutoPlaylistsSheet by remember { mutableStateOf(false) }
 
@@ -127,25 +126,6 @@ object MediaLibraryPreferencesScreen : Screen {
                 )
               }
 
-              GroupedPreferenceCard(
-                position = GroupPosition.MIDDLE,
-                highlightKey = R.string.pref_show_audio_files_title,
-              ) {
-                SwitchPreference(
-                  value = showAudioFiles,
-                  onValueChange = { newValue ->
-                    browserPreferences.showAudioFiles.set(newValue)
-                    MediaLibraryEvents.notifyChanged()
-                  },
-                  title = { Text(text = stringResource(R.string.pref_show_audio_files_title)) },
-                  summary = {
-                    Text(
-                      text = stringResource(R.string.pref_show_audio_files_summary),
-                      color = MaterialTheme.colorScheme.outline,
-                    )
-                  },
-                )
-              }
 
               GroupedPreferenceCard(
                 position = GroupPosition.LAST,

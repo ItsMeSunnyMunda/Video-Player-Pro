@@ -7,11 +7,11 @@ import xyz.mpv.rex.ui.player.SingleActionGesture
 class GesturePreferences(
   preferenceStore: PreferenceStore,
 ) {
-  val doubleTapToSeekDuration = preferenceStore.getInt("double_tap_to_seek_duration", 10)
+  val doubleTapToSeekDuration = preferenceStore.getInt("double_tap_to_seek_duration", 0)
   val doubleTapSeekAreaWidth = preferenceStore.getInt("double_tap_seek_area_width", 35)
-  val leftSingleActionGesture = preferenceStore.getEnum("left_double_tap_gesture", SingleActionGesture.Seek)
+  val leftSingleActionGesture = preferenceStore.getEnum("left_double_tap_gesture", SingleActionGesture.None)
   val centerSingleActionGesture = preferenceStore.getEnum("center_drag_gesture", SingleActionGesture.PlayPause)
-  val rightSingleActionGesture = preferenceStore.getEnum("right_drag_gesture", SingleActionGesture.Seek)
+  val rightSingleActionGesture = preferenceStore.getEnum("right_drag_gesture", SingleActionGesture.None)
   val useSingleTapForCenter = preferenceStore.getBoolean("use_single_tap_for_center", false)
   val preventSeekbarTap = preferenceStore.getBoolean("prevent_seekbar_tap", false)
   val useRelativeSeeking = preferenceStore.getBoolean("use_relative_seeking", true)

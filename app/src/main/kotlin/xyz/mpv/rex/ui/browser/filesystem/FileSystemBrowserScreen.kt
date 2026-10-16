@@ -602,22 +602,6 @@ fun FileSystemBrowserScreen(path: String? = null) {
             },
             selectionOverflowActions = buildList {
               add(SelectionOverflowAction(
-                icon = Icons.Filled.PictureInPictureAlt,
-                label = stringResource(R.string.open_with_mini_player),
-                onClick = {
-                  coroutineScope.launch {
-                    val selectedVideos = videoSelectionManager.getSelectedItems()
-                    val videosFromFolders = folderSelectionManager.getSelectedItems().flatMap { folder ->
-                      collectVideosRecursively(context, folder.path)
-                    }
-                    val allVideos = (selectedVideos + videosFromFolders).distinctBy { it.id }
-                    if (allVideos.isNotEmpty()) MediaUtils.playInMiniPlayer(allVideos)
-                    folderSelectionManager.clear()
-                    videoSelectionManager.clear()
-                  }
-                },
-              ))
-              add(SelectionOverflowAction(
                 icon = Icons.Filled.Share,
                 label = stringResource(R.string.generic_share),
                 onClick = {

@@ -151,9 +151,7 @@ class PlayerGestureManager(
     isRight: Boolean = false,
   ) {
     when (action) {
-      SingleActionGesture.Seek -> {
-        if (isLeft) leftSeek() else if (isRight) rightSeek()
-      }
+      SingleActionGesture.Seek -> {}
       SingleActionGesture.SubSeek -> {
         if (isLeft) leftSubSeek() else if (isRight) rightSubSeek()
       }

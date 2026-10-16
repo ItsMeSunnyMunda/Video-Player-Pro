@@ -351,22 +351,6 @@ data class SearchScreen(
             selectionOverflowActions = buildList {
               add(
                 SelectionOverflowAction(
-                  icon = Icons.Filled.PictureInPictureAlt,
-                  label = stringResource(R.string.open_with_mini_player),
-                  onClick = {
-                    coroutineScope.launch {
-                      val selectedVideos = videoSelectionManager.getSelectedItems()
-                      if (selectedVideos.isNotEmpty()) {
-                        MediaUtils.playInMiniPlayer(selectedVideos)
-                      }
-                      folderSelectionManager.clear()
-                      videoSelectionManager.clear()
-                    }
-                  }
-                )
-              )
-              add(
-                SelectionOverflowAction(
                   icon = Icons.Filled.Share,
                   label = stringResource(R.string.generic_share),
                   onClick = {

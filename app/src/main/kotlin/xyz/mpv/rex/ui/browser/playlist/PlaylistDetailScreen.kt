@@ -288,14 +288,6 @@ data class PlaylistDetailScreen(val playlistId: Int) : Screen {
             },
             onPlayClick = null, // Don't show play icon in selection mode for playlist
             selectionOverflowActions = buildList {
-              add(SelectionOverflowAction(
-                icon = Icons.Filled.PictureInPictureAlt,
-                label = stringResource(R.string.open_with_mini_player),
-                onClick = {
-                  MediaUtils.playInMiniPlayer(selectionManager.getSelectedItems().map { it.video })
-                  selectionManager.clear()
-                },
-              ))
               if (playlist?.isM3uPlaylist != true) {
                 add(SelectionOverflowAction(
                   icon = Icons.Filled.Share,

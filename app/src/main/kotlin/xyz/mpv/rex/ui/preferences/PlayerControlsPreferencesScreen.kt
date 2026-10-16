@@ -49,7 +49,6 @@ import xyz.mpv.rex.preferences.AppearancePreferences
 import xyz.mpv.rex.preferences.PlayerButton
 import xyz.mpv.rex.preferences.allPlayerButtons
 import xyz.mpv.rex.preferences.PlayerPreferences
-import xyz.mpv.rex.preferences.SeekbarStyle
 import xyz.mpv.rex.ui.player.PlaybackControlsPosition
 import xyz.mpv.rex.preferences.preference.collectAsState
 import xyz.mpv.rex.presentation.Screen
@@ -252,96 +251,6 @@ object PlayerControlsPreferencesScreen : Screen {
                         }
                     }
 
-                    // Seekbar Section
-                    item {
-                        PreferenceSectionHeader(title = stringResource(R.string.pref_seekbar_style_header))
-                    }
-                    item {
-                        val currentSeekbarStyle by appearancePrefs.seekbarStyle.collectAsState()
-                        val whiteSeekBar by playerPrefs.whiteSeekBar.collectAsState()
-                        val showSeekbarChapters by playerPrefs.showSeekbarChapters.collectAsState()
-                        val showSeekbarReadAhead by playerPrefs.showSeekbarReadAhead.collectAsState()
-
-                        GroupedListColumn {
-                            GroupedPreferenceCard(
-                                position = GroupPosition.FIRST,
-                                highlightKey = R.string.pref_seekbar_style_header,
-                            ) {
-                                Column {
-                                    SeekbarStyle.entries.forEachIndexed { index, style ->
-                                        ListItem(
-                                            headlineContent = {
-                                                Text(text = style.name)
-                                            },
-                                            trailingContent = {
-                                                RadioButton(
-                                                    selected = currentSeekbarStyle == style,
-                                                    onClick = null
-                                                )
-                                            },
-                                            colors = androidx.compose.material3.ListItemDefaults.colors(
-                                                containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                                            ),
-                                            modifier = Modifier
-                                                .clickable { appearancePrefs.seekbarStyle.set(style) }
-                                        )
-                                        if (index < SeekbarStyle.entries.size - 1) {
-                                            PreferenceDivider()
-                                        }
-                                    }
-                                }
-                            }
-
-                            GroupedPreferenceCard(
-                                position = GroupPosition.MIDDLE,
-                                highlightKey = R.string.pref_player_white_seekbar_title,
-                            ) {
-                                SwitchPreference(
-                                    value = whiteSeekBar,
-                                    onValueChange = { playerPrefs.whiteSeekBar.set(it) },
-                                    title = {
-                                        Text(text = stringResource(R.string.pref_player_white_seekbar_title))
-                                    },
-                                    summary = {
-                                        Text(text = stringResource(R.string.pref_player_white_seekbar_summary))
-                                    },
-                                )
-                            }
-
-                            GroupedPreferenceCard(
-                                position = GroupPosition.MIDDLE,
-                                highlightKey = R.string.pref_player_show_seekbar_chapters_title,
-                            ) {
-                                SwitchPreference(
-                                    value = showSeekbarChapters,
-                                    onValueChange = { playerPrefs.showSeekbarChapters.set(it) },
-                                    title = {
-                                        Text(text = stringResource(R.string.pref_player_show_seekbar_chapters_title))
-                                    },
-                                    summary = {
-                                        Text(text = stringResource(R.string.pref_player_show_seekbar_chapters_summary))
-                                    },
-                                )
-                            }
-
-                            GroupedPreferenceCard(
-                                position = GroupPosition.LAST,
-                                highlightKey = R.string.pref_player_show_seekbar_read_ahead_title,
-                            ) {
-                                SwitchPreference(
-                                    value = showSeekbarReadAhead,
-                                    onValueChange = { playerPrefs.showSeekbarReadAhead.set(it) },
-                                    title = {
-                                        Text(text = stringResource(R.string.pref_player_show_seekbar_read_ahead_title))
-                                    },
-                                    summary = {
-                                        Text(text = stringResource(R.string.pref_player_show_seekbar_read_ahead_summary))
-                                    },
-                                )
-                            }
-                        }
-                    }
-
                     // Bottom Controls Layout Section
                     item {
                         PreferenceSectionHeader(title = stringResource(R.string.pref_controls_layout_header))
@@ -399,11 +308,7 @@ object PlayerControlsPreferencesScreen : Screen {
                     }
                     item {
                         val enableBounceAnimation by appearancePrefs.enableBounceAnimation.collectAsState()
-                        val hidePlayerButtonsBackground by appearancePrefs.hidePlayerButtonsBackground.collectAsState()
                         val showNextPreviousButtons by appearancePrefs.showNextPreviousButtons.collectAsState()
-                        val enableGlassPlayerControls by appearancePrefs.enableGlassPlayerControls.collectAsState()
-                        val enableGlassSeekbarBackground by appearancePrefs.enableGlassSeekbarBackground.collectAsState()
-                        val playerAlwaysDarkMode by appearancePrefs.playerAlwaysDarkMode.collectAsState()
                         val playerTimeToDisappear by playerPrefs.playerTimeToDisappear.collectAsState()
                         val predefinedTimeValues = listOf(0, 500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000)
                         val isCustomTimeValue = !predefinedTimeValues.contains(playerTimeToDisappear)
@@ -437,26 +342,6 @@ object PlayerControlsPreferencesScreen : Screen {
 
                             GroupedPreferenceCard(
                                 position = GroupPosition.MIDDLE,
-                                highlightKey = R.string.pref_appearance_hide_player_buttons_background_title,
-                            ) {
-                                SwitchPreference(
-                                    value = hidePlayerButtonsBackground,
-                                    onValueChange = { appearancePrefs.hidePlayerButtonsBackground.set(it) },
-                                    title = {
-                                        Text(
-                                            text = stringResource(id = R.string.pref_appearance_hide_player_buttons_background_title),
-                                        )
-                                    },
-                                    summary = {
-                                        Text(
-                                            text = stringResource(id = R.string.pref_appearance_hide_player_buttons_background_summary),
-                                        )
-                                    },
-                                )
-                            }
-
-                            GroupedPreferenceCard(
-                                position = GroupPosition.MIDDLE,
                                 highlightKey = R.string.pref_appearance_show_next_previous_buttons_title,
                             ) {
                                 SwitchPreference(
@@ -471,71 +356,6 @@ object PlayerControlsPreferencesScreen : Screen {
                                         Text(
                                             text = stringResource(id = R.string.pref_appearance_show_next_previous_buttons_summary),
                                         )
-                                    },
-                                )
-                            }
-
-                            GroupedPreferenceCard(
-                                position = GroupPosition.MIDDLE,
-                                highlightKey = R.string.pref_appearance_enable_glass_player_controls_title,
-                            ) {
-                                SwitchPreference(
-                                    value = enableGlassPlayerControls,
-                                    onValueChange = { appearancePrefs.enableGlassPlayerControls.set(it) },
-                                    title = {
-                                        Text(
-                                            text = stringResource(id = R.string.pref_appearance_enable_glass_player_controls_title),
-                                        )
-                                    },
-                                    summary = {
-                                        Text(
-                                            text = stringResource(id = R.string.pref_appearance_enable_glass_player_controls_summary),
-                                        )
-                                    },
-                                )
-                            }
-
-                            GroupedPreferenceCard(
-                                position = GroupPosition.MIDDLE,
-                                highlightKey = R.string.pref_appearance_enable_glass_seekbar_title,
-                            ) {
-                                SwitchPreference(
-                                    value = enableGlassSeekbarBackground,
-                                    onValueChange = { appearancePrefs.enableGlassSeekbarBackground.set(it) },
-                                    enabled = enableGlassPlayerControls,
-                                    title = {
-                                        Text(
-                                            text = stringResource(id = R.string.pref_appearance_enable_glass_seekbar_title),
-                                        )
-                                    },
-                                    summary = {
-                                        Text(
-                                            text = stringResource(id = R.string.pref_appearance_enable_glass_seekbar_summary),
-                                        )
-                                    },
-                                )
-                            }
-
-                            GroupedPreferenceCard(
-                                position = GroupPosition.MIDDLE,
-                                highlightKey = R.string.pref_appearance_player_always_dark_mode_title,
-                            ) {
-                                SwitchPreference(
-                                    value = if (enableGlassPlayerControls) true else playerAlwaysDarkMode,
-                                    onValueChange = { appearancePrefs.playerAlwaysDarkMode.set(it) },
-                                    enabled = !enableGlassPlayerControls,
-                                    onDisabledClick = {
-                                        Toast.makeText(
-                                            context,
-                                            context.getString(R.string.pref_appearance_player_always_dark_mode_disabled_toast),
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                    },
-                                    title = {
-                                        Text(text = stringResource(R.string.pref_appearance_player_always_dark_mode_title))
-                                    },
-                                    summary = {
-                                        Text(text = stringResource(R.string.pref_appearance_player_always_dark_mode_summary))
                                     },
                                 )
                             }

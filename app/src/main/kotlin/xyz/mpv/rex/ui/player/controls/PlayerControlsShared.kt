@@ -468,43 +468,7 @@ fun RenderPlayerButton(
       }
     }
 
-    PlayerButton.SCREEN_ROTATION -> {
-      if (isMoreSheet) {
-          Surface(
-            shape = itemShape,
-            color = surfaceColor,
-            contentColor = contentColor,
-            border = borderColor,
-            modifier = Modifier
-              .height(buttonSize)
-              .clip(itemShape)
-              .clickable { viewModel.cycleScreenRotations() }
-          ) {
-            Row(
-              verticalAlignment = Alignment.CenterVertically,
-              horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
-              modifier = Modifier.padding(horizontal = MaterialTheme.spacing.smaller)
-            ) {
-              Icon(
-                imageVector = Icons.Default.ScreenRotation,
-                contentDescription = null,
-                modifier = Modifier.size(24.dp)
-              )
-              Text(
-                text = stringResource(R.string.screen_rotation),
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = 1,
-              )
-            }
-          }
-      } else {
-          ControlsButton(
-            icon = Icons.Default.ScreenRotation,
-            onClick = viewModel::cycleScreenRotations,
-            modifier = Modifier.size(buttonSize),
-          )
-      }
-    }
+    PlayerButton.SCREEN_ROTATION -> {}
 
     PlayerButton.FRAME_NAVIGATION -> {
       val isExpanded by viewModel.isFrameNavigationExpanded.collectAsState()
@@ -551,103 +515,9 @@ fun RenderPlayerButton(
       }
     }
 
-    PlayerButton.PICTURE_IN_PICTURE -> {
-      if (isMoreSheet) {
-          Surface(
-            shape = itemShape,
-            color = surfaceColor,
-            contentColor = contentColor,
-            border = borderColor,
-            modifier = Modifier
-              .height(buttonSize)
-              .clip(itemShape)
-              .clickable { activity.enterPipModeHidingOverlay() }
-          ) {
-            Row(
-              verticalAlignment = Alignment.CenterVertically,
-              horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
-              modifier = Modifier.padding(horizontal = MaterialTheme.spacing.smaller)
-            ) {
-              Icon(
-                imageVector = Icons.Default.PictureInPictureAlt,
-                contentDescription = null,
-                modifier = Modifier.size(24.dp)
-              )
-              Text(
-                text = stringResource(R.string.pip),
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = 1,
-              )
-            }
-          }
-      } else {
-          ControlsButton(
-            Icons.Default.PictureInPictureAlt,
-            onClick = { activity.enterPipModeHidingOverlay() },
-            modifier = Modifier.size(buttonSize),
-          )
-      }
-    }
+    PlayerButton.PICTURE_IN_PICTURE -> {}
 
-    PlayerButton.ASPECT_RATIO -> {
-      if (isMoreSheet) {
-          Surface(
-            shape = itemShape,
-            color = surfaceColor,
-            contentColor = contentColor,
-            border = borderColor,
-            modifier = Modifier
-              .height(buttonSize)
-              .clip(itemShape)
-              .clickable {
-                  when (aspect) {
-                    VideoAspect.Fit -> viewModel.changeVideoAspect(VideoAspect.Stretch)
-                    VideoAspect.Stretch -> viewModel.changeVideoAspect(VideoAspect.Crop)
-                    VideoAspect.Crop -> viewModel.changeVideoAspect(VideoAspect.Fit)
-                  }
-              }
-          ) {
-            Row(
-              verticalAlignment = Alignment.CenterVertically,
-              horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
-              modifier = Modifier.padding(horizontal = MaterialTheme.spacing.smaller)
-            ) {
-              Icon(
-                imageVector = when (aspect) {
-                    VideoAspect.Fit -> Icons.Default.AspectRatio
-                    VideoAspect.Stretch -> Icons.Default.ZoomOutMap
-                    VideoAspect.Crop -> Icons.Default.FitScreen
-                },
-                contentDescription = null,
-                modifier = Modifier.size(24.dp)
-              )
-              Text(
-                text = aspect.name,
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = 1,
-              )
-            }
-          }
-      } else {
-          ControlsButton(
-            icon =
-              when (aspect) {
-                VideoAspect.Fit -> Icons.Default.AspectRatio
-                VideoAspect.Stretch -> Icons.Default.ZoomOutMap
-                VideoAspect.Crop -> Icons.Default.FitScreen
-              },
-            onClick = {
-              when (aspect) {
-                VideoAspect.Fit -> viewModel.changeVideoAspect(VideoAspect.Stretch)
-                VideoAspect.Stretch -> viewModel.changeVideoAspect(VideoAspect.Crop)
-                VideoAspect.Crop -> viewModel.changeVideoAspect(VideoAspect.Fit)
-              }
-            },
-            onLongClick = { onOpenSheet(Sheets.AspectRatios) },
-            modifier = Modifier.size(buttonSize),
-          )
-      }
-    }
+    PlayerButton.ASPECT_RATIO -> {}
 
     PlayerButton.VIDEO_ZOOM -> {
       val isZoomed = kotlin.math.abs(currentZoom) >= 0.005f
@@ -1207,54 +1077,7 @@ fun RenderPlayerButton(
       }
     }
 
-    PlayerButton.BACKGROUND_PLAYBACK -> {
-      val audioPreferences = org.koin.compose.koinInject<xyz.mpv.rex.preferences.AudioPreferences>()
-      val automaticBackgroundPlayback by audioPreferences.automaticBackgroundPlayback.collectAsState()
-      val icon = if (automaticBackgroundPlayback) Icons.Default.Headset else Icons.Default.HeadsetOff
-
-      if (isMoreSheet) {
-          Surface(
-            shape = itemShape,
-            color = surfaceColor,
-            contentColor = contentColor,
-            border = borderColor,
-            modifier = Modifier
-              .height(buttonSize)
-              .clip(itemShape)
-              .combinedClickable(
-                onClick = { audioPreferences.automaticBackgroundPlayback.set(!automaticBackgroundPlayback) },
-                onLongClick = { activity.triggerBackgroundPlayback() },
-                interactionSource = remember { MutableInteractionSource() },
-                indication = ripple()
-              )
-          ) {
-            Row(
-              verticalAlignment = Alignment.CenterVertically,
-              horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
-              modifier = Modifier.padding(horizontal = MaterialTheme.spacing.smaller)
-            ) {
-              Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(24.dp)
-              )
-              Text(
-                text = stringResource(R.string.background_playback),
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = 1,
-              )
-            }
-          }
-      } else {
-          ControlsButton(
-            icon = icon,
-            onClick = { audioPreferences.automaticBackgroundPlayback.set(!automaticBackgroundPlayback) },
-            onLongClick = { activity.triggerBackgroundPlayback() },
-            isActive = automaticBackgroundPlayback,
-            modifier = Modifier.size(buttonSize),
-          )
-      }
-    }
+    PlayerButton.BACKGROUND_PLAYBACK -> {}
 
     PlayerButton.AMBIENT_MODE -> {
         val isAmbientEnabled by viewModel.isAmbientEnabled.collectAsState()

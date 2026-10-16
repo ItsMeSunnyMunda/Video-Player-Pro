@@ -93,7 +93,7 @@ fun SeekbarWithTimers(
   chapters: ImmutableList<Segment>,
   paused: Boolean,
   readAheadValue: () -> Float = position,
-  seekbarStyle: SeekbarStyle = SeekbarStyle.Wavy,
+  seekbarStyle: SeekbarStyle = SeekbarStyle.Standard,
   loopStart: Float? = null,
   loopEnd: Float? = null,
   isGestureSeeking: Boolean = false,
@@ -366,8 +366,8 @@ private fun SquigglySeekbar(
 ) {
   val playerPreferences = koinInject<PlayerPreferences>()
   val whiteSeekBar by playerPreferences.whiteSeekBar.collectAsState()
-  val showSeekbarChapters by playerPreferences.showSeekbarChapters.collectAsState()
-  val showSeekbarReadAhead by playerPreferences.showSeekbarReadAhead.collectAsState()
+  val showSeekbarChapters = false
+  val showSeekbarReadAhead = false
   val primaryColor = if (whiteSeekBar) Color.White else MaterialTheme.colorScheme.primary
   val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
 
@@ -790,8 +790,8 @@ fun StandardSeekbar(
 ) {
     val playerPreferences = koinInject<PlayerPreferences>()
     val whiteSeekBar by playerPreferences.whiteSeekBar.collectAsState()
-    val showSeekbarChapters by playerPreferences.showSeekbarChapters.collectAsState()
-    val showSeekbarReadAhead by playerPreferences.showSeekbarReadAhead.collectAsState()
+    val showSeekbarChapters = false
+    val showSeekbarReadAhead = false
     val primaryColor = if (whiteSeekBar) Color.White else MaterialTheme.colorScheme.primary
     val interactionSource = remember { MutableInteractionSource() }
     

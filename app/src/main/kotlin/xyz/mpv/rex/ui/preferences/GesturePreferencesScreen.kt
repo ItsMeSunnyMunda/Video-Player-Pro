@@ -60,9 +60,6 @@ object GesturePreferencesScreen : Screen {
     val useSingleTapForCenter by preferences.useSingleTapForCenter.collectAsState()
     val useSingleTapForLeftRight by preferences.useSingleTapForLeftRight.collectAsState()
 
-    var showCustomSeekDialog by remember { mutableStateOf(false) }
-    var customSeekValue by remember { mutableStateOf("") }
-
     Scaffold(
       topBar = {
         TopAppBar(
@@ -101,109 +98,25 @@ object GesturePreferencesScreen : Screen {
           }
 
           item {
-            val doubleTapSeekDuration by preferences.doubleTapToSeekDuration.collectAsState()
-            val predefinedValues = listOf(3, 5, 10, 15, 20, 25, 30)
-            val isCustomValue = !predefinedValues.contains(doubleTapSeekDuration)
-            val customValueLabel = stringResource(R.string.pref_gesture_custom_value)
-            val doubleTapSeekAreaWidth by preferences.doubleTapSeekAreaWidth.collectAsState()
-            val seekAreaValues = listOf(20, 25, 30, 35, 40, 45)
-            val reverseDoubleTap by preferences.reverseDoubleTap.collectAsState()
-            val doubleTapChapterToSkip by preferences.doubleTapChapterToSkip.collectAsState()
             val leftDoubleTap by preferences.leftSingleActionGesture.collectAsState()
             val centerDoubleTap by preferences.centerSingleActionGesture.collectAsState()
             val rightDoubleTap by preferences.rightSingleActionGesture.collectAsState()
             val preventSeekbarTap by preferences.preventSeekbarTap.collectAsState()
             val useRelativeSeeking by preferences.useRelativeSeeking.collectAsState()
             val enableReleaseToCancel by preferences.enableReleaseToCancel.collectAsState()
+            val allowedDoubleTapGestures = remember {
+              SingleActionGesture.entries.filter { it != SingleActionGesture.Seek }
+            }
 
             GroupedListColumn {
               GroupedPreferenceCard(
                 position = GroupPosition.FIRST,
-                highlightKey = listOf(R.string.pref_gesture, R.string.pref_player_double_tap_seek_duration),
-              ) {
-                ListPreference(
-                  value = if (isCustomValue) -1 else doubleTapSeekDuration,
-                  onValueChange = { newValue ->
-                    if (newValue == -1) {
-                      customSeekValue = doubleTapSeekDuration.toString()
-                      showCustomSeekDialog = true
-                    } else {
-                      preferences.doubleTapToSeekDuration.set(newValue)
-                    }
-                  },
-                  values = predefinedValues + listOf(-1),
-                  valueToText = { value ->
-                    if (value == -1) {
-                      AnnotatedString(customValueLabel)
-                    } else {
-                      AnnotatedString("${value}s")
-                    }
-                  },
-                  title = { Text(text = stringResource(id = R.string.pref_player_double_tap_seek_duration)) },
-                  summary = {
-                    Text(
-                      text = if (isCustomValue) {
-                        "Custom (${doubleTapSeekDuration}s)"
-                      } else {
-                        "${doubleTapSeekDuration}s"
-                      },
-                      color = MaterialTheme.colorScheme.outline,
-                    )
-                  },
-                )
-              }
-
-              GroupedPreferenceCard(
-                position = GroupPosition.MIDDLE,
-                highlightKey = listOf(R.string.pref_gesture_double_tap_seek_area_width_title, R.string.pref_double_tap_seek_area_width_title),
-              ) {
-                ListPreference(
-                  value = doubleTapSeekAreaWidth,
-                  onValueChange = { preferences.doubleTapSeekAreaWidth.set(it) },
-                  values = seekAreaValues,
-                  valueToText = { AnnotatedString("${it}%") },
-                  title = { Text(text = stringResource(R.string.pref_gesture_double_tap_seek_area_width_title)) },
-                  summary = {
-                    Text(
-                      text = "Current: ${doubleTapSeekAreaWidth}%",
-                      color = MaterialTheme.colorScheme.outline,
-                    )
-                  },
-                )
-              }
-
-              GroupedPreferenceCard(
-                position = GroupPosition.MIDDLE,
-                highlightKey = R.string.pref_gesture_reverse_double_tap_title,
-              ) {
-                SwitchPreference(
-                  value = reverseDoubleTap,
-                  onValueChange = { preferences.reverseDoubleTap.set(it) },
-                  title = { Text(text = stringResource(id = R.string.pref_gesture_reverse_double_tap_title)) },
-                  summary = { Text(text = stringResource(id = R.string.pref_gesture_reverse_double_tap_summary)) },
-                )
-              }
-
-              GroupedPreferenceCard(
-                position = GroupPosition.MIDDLE,
-                highlightKey = R.string.pref_gesture_double_tap_chapter_skip_title,
-              ) {
-                SwitchPreference(
-                  value = doubleTapChapterToSkip,
-                  onValueChange = { preferences.doubleTapChapterToSkip.set(it) },
-                  title = { Text(text = stringResource(id = R.string.pref_gesture_double_tap_chapter_skip_title)) },
-                  summary = { Text(text = stringResource(id = R.string.pref_gesture_double_tap_chapter_skip_summary)) },
-                )
-              }
-
-              GroupedPreferenceCard(
-                position = GroupPosition.MIDDLE,
                 highlightKey = listOf(R.string.pref_gesture_double_tap_left_title, R.string.pref_gesture_single_tap_left_title),
               ) {
                 ListPreference(
                   value = leftDoubleTap,
                   onValueChange = { preferences.leftSingleActionGesture.set(it) },
-                  values = SingleActionGesture.entries,
+                  values = allowedDoubleTapGestures,
                   valueToText = { AnnotatedString(context.getString(it.titleRes)) },
                   title = {  
                     Text(
@@ -256,7 +169,7 @@ object GesturePreferencesScreen : Screen {
                 ListPreference(
                   value = rightDoubleTap,
                   onValueChange = { preferences.rightSingleActionGesture.set(it) },
-                  values = SingleActionGesture.entries,
+                  values = allowedDoubleTapGestures,
                   valueToText = { AnnotatedString(context.getString(it.titleRes)) },
                   title = {  
                     Text(
@@ -404,47 +317,6 @@ object GesturePreferencesScreen : Screen {
                   )
                 }
               }
-            }
-
-            if (showCustomSeekDialog) {
-              AlertDialog(
-                onDismissRequest = { showCustomSeekDialog = false },
-                title = { Text(text = stringResource(id = R.string.pref_player_double_tap_seek_duration)) },
-                text = {
-                  Column {
-                    Text(
-                      text = stringResource(R.string.pref_gesture_custom_seek_dialog_hint),
-                      modifier = Modifier.padding(bottom = 8.dp),
-                    )
-                    OutlinedTextField(
-                      value = customSeekValue,
-                      onValueChange = { customSeekValue = it },
-                      label = { Text(stringResource(id = R.string.unit_seconds)) },
-                      keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                      modifier = Modifier.fillMaxWidth(),
-                      singleLine = true,
-                    )
-                  }
-                },
-                confirmButton = {
-                  TextButton(
-                    onClick = {
-                      val value = customSeekValue.toIntOrNull()
-                      if (value != null && value in 1..120) {
-                        preferences.doubleTapToSeekDuration.set(value)
-                        showCustomSeekDialog = false
-                      }
-                    },
-                  ) {
-                    Text(stringResource(R.string.generic_ok))
-                  }
-                },
-                dismissButton = {
-                  TextButton(onClick = { showCustomSeekDialog = false }) {
-                    Text(stringResource(R.string.generic_cancel))
-                  }
-                },
-              )
             }
           }
 
