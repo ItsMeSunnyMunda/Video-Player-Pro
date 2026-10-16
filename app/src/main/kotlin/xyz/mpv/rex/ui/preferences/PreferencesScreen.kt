@@ -95,37 +95,7 @@ object PreferencesScreen : Screen {
           contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = navBarHeight + 24.dp),
           verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-          // Search bar - full width, prominent placement
-          item {
-            Surface(
-              onClick = { backstack.add(SettingsSearchScreen) },
-              shape = searchShape,
-              modifier = Modifier
-                .fillMaxWidth()
-                .clip(searchShape),
-              color = MaterialTheme.colorScheme.surfaceContainerHigh,
-              tonalElevation = 2.dp,
-            ) {
-              Row(
-                modifier = Modifier
-                  .fillMaxWidth()
-                  .padding(horizontal = 18.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-              ) {
-                Icon(
-                  imageVector = Icons.Outlined.Search,
-                  contentDescription = null,
-                  tint = MaterialTheme.colorScheme.primary,
-                )
-                Spacer(modifier = Modifier.width(14.dp))
-                Text(
-                  text = stringResource(R.string.settings_search_hint),
-                  style = MaterialTheme.typography.bodyLarge,
-                  color = MaterialTheme.colorScheme.outline,
-                )
-              }
-            }
-          }
+
 
           // UI & Appearance Section
           item {
@@ -217,27 +187,7 @@ object PreferencesScreen : Screen {
 
 
 
-          // Integrations Section
-          item {
-            PreferenceSection(title = "Integrations") {
-              GroupedListColumn {
-                PreferenceItem(
-                  position = GroupPosition.FIRST,
-                  title = "Jellyfin",
-                  summary = "External player sync",
-                  icon = Icons.Outlined.VideoLibrary,
-                  onClick = { backstack.add(xyz.mpv.rex.jellyfin.ui.JellyfinSettingsScreen) },
-                )
-                PreferenceItem(
-                  position = GroupPosition.LAST,
-                  title = "yt-dlp",
-                  summary = "Manage REX Ytdlp & extractor preferences",
-                  icon = Icons.Outlined.CloudDownload,
-                  onClick = { backstack.add(YtdlSettingsScreen) },
-                )
-              }
-            }
-          }
+
 
           // Advanced & About Section
           item {

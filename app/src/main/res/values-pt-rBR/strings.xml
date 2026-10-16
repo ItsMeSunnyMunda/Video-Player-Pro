@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="open_with_mini_player">Abrir com miniplayer</string>
     <string name="generic_confirm">Confirmar</string>
@@ -1099,7 +1099,7 @@
     <string name="system_default">Padrão do sistema</string>
     <string name="pref_appearance_language_title">Idioma do aplicativo</string>
     <string name="pref_appearance_language_summary">Alterar o idioma de exibição do aplicativo</string>
-    <string name="welcome_title">Bem-vindo ao mpvRex</string>
+    <string name="welcome_title">Welcome to Video Player Pro</string>
     <string name="welcome_subtitle">Seu reprodutor de mídia moderno, poderoso e personalizável.</string>
     <string name="welcome_language_section_title">Idioma preferido</string>
     <string name="welcome_language_section_desc">Selecione seu idioma de exibição</string>

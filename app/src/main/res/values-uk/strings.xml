@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
 
 	<string name="generic_reset">Скинути</string>
@@ -1322,7 +1322,7 @@
 	<string name="pref_appearance_language_title">Мова програми</string>
 	<string name="pref_appearance_language_summary">Змінити мову відображення програми</string>
 
-	<string name="welcome_title">Ласкаво просимо до mpvRex</string>
+	<string name="welcome_title">Welcome to Video Player Pro</string>
 	<string name="welcome_subtitle">Ваш сучасний, потужний та налаштовуваний медіаплеєр.</string>
 	<string name="welcome_language_section_title">Бажана мова</string>
 	<string name="welcome_language_section_desc">Оберіть мову відображення</string>

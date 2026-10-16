@@ -215,9 +215,7 @@ class MainActivity : ComponentActivity() {
     val isMainScreen = currentRoute == MainScreen
     val isWelcomeScreen = currentRoute == WelcomeScreen
     
-    val targetBottomPadding = if (isMainScreen && !hideNavigationBar) {
-      if (miniPlayerState.isExpanded) 8.dp else 88.dp
-    } else 8.dp
+    val targetBottomPadding = 8.dp
     val animatedBottomPadding by androidx.compose.animation.core.animateDpAsState(
       targetValue = targetBottomPadding,
       animationSpec = tween(220),
@@ -230,8 +228,8 @@ class MainActivity : ComponentActivity() {
       animationSpec = tween(220),
       label = "miniPlayerHeight"
     )
-    val navBarHeight = if (isMainScreen && !hideNavigationBar) 80.dp else 0.dp
-    val totalNavigationBarHeight = navBarHeight + miniPlayerHeight
+    val navBarHeight = 0.dp
+    val totalNavigationBarHeight = miniPlayerHeight
 
     BackHandler(enabled = isMainScreen || isWelcomeScreen) {
       (context as? Activity)?.moveTaskToBack(true)
@@ -314,7 +312,7 @@ class MainActivity : ComponentActivity() {
                     (release.htmlUrl ?: if (UpdateManager.isPreviewBuild()) {
                       UpdateManager.PREVIEW_PAGE_URL
                     } else {
-                      "https://github.com/mpvRex/REX-Player/releases/latest"
+                      "https://github.com/ItsMeSunnyMunda/Video-Player-Pro/releases/latest"
                     }).toUri()
                   )
                 )
@@ -340,7 +338,7 @@ class MainActivity : ComponentActivity() {
                     (release.htmlUrl ?: if (UpdateManager.isPreviewBuild()) {
                       UpdateManager.PREVIEW_PAGE_URL
                     } else {
-                      "https://github.com/mpvRex/REX-Player/releases/latest"
+                      "https://github.com/ItsMeSunnyMunda/Video-Player-Pro/releases/latest"
                     }).toUri()
                   )
                 )

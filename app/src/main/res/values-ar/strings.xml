@@ -1,4 +1,4 @@
-<resources>
+﻿<resources>
     <string name="generic_reset">إعادة الضبط</string>
     <string name="generic_share">مشاركة</string>
     <string name="generic_confirm">تأكيد</string>
@@ -1298,7 +1298,7 @@
     <string name="generic_off">إيقاف</string>
     <string name="system_default">الإعدادات الافتراضية للنظام</string>
     <string name="pref_appearance_language_summary">تغيير لغة عرض التطبيق</string>
-    <string name="welcome_title">mpvRx أهلا بكم في</string>
+    <string name="welcome_title">Welcome to Video Player Pro</string>
     <string name="welcome_subtitle">مشغل الوسائط العصري والقوي والقابل للتخصيص.</string>
     <string name="welcome_language_section_title">اللغة المفضلة</string>
     <string name="welcome_language_section_desc">اختر لغة العرض خاصتك</string>

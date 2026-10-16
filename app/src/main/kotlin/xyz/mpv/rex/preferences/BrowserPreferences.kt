@@ -108,7 +108,7 @@ class BrowserPreferences(
     networkSortOrder.set(getNetworkSortOrder(type))
   }
 
-  val folderViewMode = preferenceStore.getEnum("folder_view_mode", FolderViewMode.AlbumView)
+  val folderViewMode = preferenceStore.getEnum("folder_view_mode", FolderViewMode.FileManager)
 
   private val isTablet = context.resources.configuration.smallestScreenWidthDp >= 600
   val folderGridColumnsPortrait = preferenceStore.getInt("folder_grid_columns_portrait", if (isTablet) 4 else 3)

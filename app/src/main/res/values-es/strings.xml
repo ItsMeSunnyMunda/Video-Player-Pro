@@ -1,4 +1,4 @@
-<resources>
+﻿<resources>
 
     <string name="generic_reset">Restablecer</string>
     <string name="generic_share">Compartir</string>
@@ -1282,7 +1282,7 @@
     <string name="system_default">Configuración predeterminada del sistema</string>
     <string name="pref_appearance_language_title">Idioma de la aplicación</string>
     <string name="pref_appearance_language_summary">Cambiar el idioma de visualización de la aplicación</string>
-    <string name="welcome_title">Bienvenido a mpvRex</string>
+    <string name="welcome_title">Welcome to Video Player Pro</string>
     <string name="welcome_subtitle">Tu reproductor multimedia moderno, potente y personalizable.</string>
     <string name="welcome_language_section_title">Idioma preferido</string>
     <string name="welcome_language_section_desc">Selecciona el idioma de visualización</string>

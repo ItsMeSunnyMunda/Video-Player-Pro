@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="generic_reset">بازنشانی کنید</string>
     <string name="generic_share">اشتراک گذاری</string>
@@ -1123,7 +1123,7 @@
     <string name="system_default">پیش فرض سیستم</string>
     <string name="pref_appearance_language_title">زبان برنامه</string>
     <string name="pref_appearance_language_summary">زبان نمایش برنامه را تغییر دهید</string>
-    <string name="welcome_title">به mpvRex خوش آمدید</string>
+    <string name="welcome_title">Welcome to Video Player Pro</string>
     <string name="welcome_subtitle">پخش کننده رسانه مدرن، قدرتمند و قابل تنظیم شما.</string>
     <string name="welcome_language_section_title">زبان برگزیده</string>
     <string name="welcome_language_section_desc">زبان نمایش خود را انتخاب کنید</string>

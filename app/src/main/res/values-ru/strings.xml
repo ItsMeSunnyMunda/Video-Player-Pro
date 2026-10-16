@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
 	<string name="generic_reset">Сбросить</string>
 	<string name="generic_share">Поделиться</string>
@@ -1275,7 +1275,7 @@
 	<string name="filter_preset_deep_black">Глубокий чёрный</string>
 	<string name="filter_preset_deep_black_desc">Улучшенный чёрный цвет для OLED-дисплеев</string>
     <string name="pref_player_resume_playback_title">Возобновить воспроизведение</string>
-    <string name="welcome_title">Добро пожаловать в mpvRex</string>
+    <string name="welcome_title">Welcome to Video Player Pro</string>
     <string name="welcome_subtitle">Ваш современный, мощный и настраиваемый медиаплеер.</string>
     <string name="welcome_language_section_title">Предпочитаемый язык</string>
     <string name="welcome_language_section_desc">Выберите отображаемый язык</string>

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="generic_reset">Mengatur ulang</string>
     <string name="generic_share">Membagikan</string>
@@ -1111,7 +1111,7 @@
     <string name="system_default">Bawaan Sistem</string>
     <string name="pref_appearance_language_title">Bahasa Aplikasi</string>
     <string name="pref_appearance_language_summary">Ubah bahasa tampilan aplikasi</string>
-    <string name="welcome_title">Selamat datang di mpvRex</string>
+    <string name="welcome_title">Welcome to Video Player Pro</string>
     <string name="welcome_subtitle">Pemutar media Anda yang modern, kuat, dan dapat disesuaikan.</string>
     <string name="welcome_language_section_title">Bahasa Pilihan</string>
     <string name="welcome_language_section_desc">Pilih bahasa tampilan Anda</string>

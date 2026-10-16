@@ -203,24 +203,12 @@ object MainScreen : Screen {
     val playlistsLabel = stringResource(R.string.playlists)
     val networkLabel = stringResource(R.string.network)
 
-    val visibleTabs = remember(
-      enableTabRecents,
-      homeLabel, recentsLabel
-    ) {
-      buildList {
-        add(
-          VisibleTab("home", homeLabel, Icons.Filled.Home) {
-            FolderListScreen.Content()
-          }
-        )
-        if (enableTabRecents) {
-          add(
-            VisibleTab("recents", recentsLabel, Icons.Filled.History) {
-              RecentlyPlayedScreen.Content()
-            }
-          )
+    val visibleTabs = remember(homeLabel) {
+      listOf(
+        VisibleTab("home", homeLabel, Icons.Filled.Home) {
+          FolderListScreen.Content()
         }
-      }
+      )
     }
 
     // Ensure selectedTab is always clamped within active tabs range
@@ -252,54 +240,10 @@ object MainScreen : Screen {
       }
     }
 
-    // Scaffold with bottom navigation bar
+    // Scaffold with no bottom navigation bar
     Scaffold(
       modifier = Modifier.fillMaxSize(),
-      bottomBar = {
-        AnimatedVisibility(
-            visible = !hideNavigationBar && visibleTabs.size > 1,
-            enter = slideInVertically(
-              animationSpec = tween(durationMillis = 300),
-              initialOffsetY = { fullHeight -> fullHeight }
-            ),
-            exit = slideOutVertically(
-              animationSpec = tween(durationMillis = 300),
-              targetOffsetY = { fullHeight -> fullHeight }
-            )
-          ) {
-            NavigationBar(
-              containerColor = MaterialTheme.colorScheme.surfaceContainer,
-              contentColor = MaterialTheme.colorScheme.onSurface,
-            ) {
-              val itemColors = NavigationBarItemDefaults.colors(
-                selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                selectedTextColor = MaterialTheme.colorScheme.onSurface,
-                indicatorColor = MaterialTheme.colorScheme.secondaryContainer,
-                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-              )
-
-              visibleTabs.forEachIndexed { index, tab ->
-                NavigationBarItem(
-                  icon = {
-                    Icon(tab.icon, contentDescription = tab.label)
-                  },
-                  label = { Text(tab.label) },
-                  selected = selectedTab == index,
-                  onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                    if (selectedTab == index) {
-                      _scrollToTopRequest.tryEmit(tab.id)
-                    } else {
-                      selectedTab = index
-                    }
-                  },
-                  colors = itemColors,
-                )
-              }
-            }
-          }
-        }
+      bottomBar = {}
     ) { _ ->
       Box(modifier = Modifier.fillMaxSize()) {
         val fabBottomPadding = 80.dp
@@ -362,10 +306,8 @@ object MainScreen : Screen {
           },
           label = "tab_animation"
         ) { targetTab ->
-          val isNavBarVisible = !hideNavigationBar && visibleTabs.size > 1
-          val navBarHeight = if (isNavBarVisible) 80.dp else 0.dp
           val miniPlayerHeight = if (miniPlayerState.isPlaybackActive) MiniPlayerDefaults.CompactHeight else 0.dp
-          val totalBottomPadding = navBarHeight + miniPlayerHeight
+          val totalBottomPadding = miniPlayerHeight
           
           CompositionLocalProvider(
             LocalNavigationBarHeight provides totalBottomPadding

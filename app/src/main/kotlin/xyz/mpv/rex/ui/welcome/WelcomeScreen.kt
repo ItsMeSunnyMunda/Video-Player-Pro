@@ -52,6 +52,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -90,7 +91,6 @@ object WelcomeScreen : Screen {
     val context = LocalContext.current
     val backstack = LocalBackStack.current
     val appearancePreferences = koinInject<AppearancePreferences>()
-    var showLanguageDialog by remember { mutableStateOf(false) }
     var showExplanationDialog by remember { mutableStateOf(false) }
 
     var isGranted by remember {
@@ -118,6 +118,13 @@ object WelcomeScreen : Screen {
       val observer = LifecycleEventObserver { _, event ->
         if (event == Lifecycle.Event.ON_RESUME) {
           isGranted = PermissionUtils.isStoragePermissionGranted(context)
+          if (isGranted) {
+            appearancePreferences.onboardingCompleted.set(true)
+            if (backstack.lastOrNull() == WelcomeScreen) {
+              backstack.add(MainScreen)
+              backstack.remove(WelcomeScreen)
+            }
+          }
         }
       }
       lifecycleOwner?.lifecycle?.addObserver(observer)
@@ -139,6 +146,17 @@ object WelcomeScreen : Screen {
     ) {
       isGranted = PermissionUtils.isStoragePermissionGranted(context)
       if (isGranted) {
+        navigateToMain()
+      }
+    }
+
+    // Automatically prompt storage permission dialog on first launch
+    LaunchedEffect(Unit) {
+      if (!isGranted) {
+        PermissionUtils.requestStorageAccess(context) {
+          permissionLauncher.launch(PermissionUtils.getStoragePermission())
+        }
+      } else {
         navigateToMain()
       }
     }
@@ -265,75 +283,7 @@ object WelcomeScreen : Screen {
           Spacer(modifier = Modifier.height(28.dp))
         }
 
-        item {
-          // Language Picker Card
-          val currentLanguage = remember { LocaleHelper.getCurrentLanguage(context) }
-          Card(
-            modifier = Modifier
-              .fillMaxWidth()
-              .clip(RoundedCornerShape(20.dp))
-              .clickable { showLanguageDialog = true },
-            colors = CardDefaults.cardColors(
-              containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-            ),
-            shape = RoundedCornerShape(20.dp),
-          ) {
-            Row(
-              modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-              verticalAlignment = Alignment.CenterVertically,
-            ) {
-              Surface(
-                modifier = Modifier.size(44.dp),
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.secondaryContainer,
-              ) {
-                Box(
-                  modifier = Modifier.fillMaxSize(),
-                  contentAlignment = Alignment.Center,
-                ) {
-                  Icon(
-                    imageVector = Icons.Filled.Language,
-                    contentDescription = null,
-                    modifier = Modifier.size(24.dp),
-                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                  )
-                }
-              }
 
-              Spacer(modifier = Modifier.width(16.dp))
-
-              Column(modifier = Modifier.weight(1f)) {
-                Text(
-                  text = stringResource(R.string.welcome_language_section_title),
-                  style = MaterialTheme.typography.labelMedium,
-                  color = MaterialTheme.colorScheme.primary,
-                  fontWeight = FontWeight.SemiBold,
-                )
-                Text(
-                  text = if (currentLanguage.code.isEmpty()) {
-                    stringResource(R.string.system_default)
-                  } else {
-                    "${currentLanguage.nativeName} (${currentLanguage.localizedName})"
-                  },
-                  style = MaterialTheme.typography.titleMedium,
-                  fontWeight = FontWeight.Bold,
-                  color = MaterialTheme.colorScheme.onSurface,
-                )
-              }
-
-              TextButton(onClick = { showLanguageDialog = true }) {
-                Text(
-                  text = stringResource(R.string.browse),
-                  fontWeight = FontWeight.SemiBold,
-                )
-              }
-            }
-          }
-
-          Spacer(modifier = Modifier.height(16.dp))
-        }
 
         item {
           // Storage Permission Card (Dynamic status & descriptions)
@@ -434,98 +384,10 @@ object WelcomeScreen : Screen {
       }
     }
 
-    // Language Selection Dialog
-    if (showLanguageDialog) {
-      val currentCode = remember { LocaleHelper.getSavedLanguageCode(context) }
-      var selectedCode by remember { mutableStateOf(currentCode) }
-      val languages = remember { LocaleHelper.getSupportedLanguages(context) }
-
-      AlertDialog(
-        onDismissRequest = { showLanguageDialog = false },
-        icon = {
-          Icon(
-            imageVector = Icons.Filled.Language,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-          )
-        },
-        title = {
-          Text(
-            text = stringResource(R.string.pref_appearance_language_title),
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-          )
-        },
-        text = {
-          Column(
-            modifier = Modifier
-              .fillMaxWidth()
-              .heightIn(max = 350.dp)
-              .verticalScroll(rememberScrollState())
-              .selectableGroup(),
-          ) {
-            languages.forEach { language ->
-              val isSelected = selectedCode == language.code
-              Row(
-                modifier = Modifier
-                  .fillMaxWidth()
-                  .clip(RoundedCornerShape(12.dp))
-                  .selectable(
-                    selected = isSelected,
-                    onClick = { selectedCode = language.code },
-                    role = Role.RadioButton,
-                  )
-                  .padding(horizontal = 8.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-              ) {
-                RadioButton(
-                  selected = isSelected,
-                  onClick = null,
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Column {
-                  Text(
-                    text = language.nativeName,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                    color = MaterialTheme.colorScheme.onSurface,
-                  )
-                  if (language.code.isNotEmpty()) {
-                    Text(
-                      text = language.localizedName,
-                      style = MaterialTheme.typography.bodySmall,
-                      color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                  }
-                }
-              }
-            }
-          }
-        },
-        confirmButton = {
-          FilledTonalButton(
-            onClick = {
-              LocaleHelper.setAppLanguage(context, selectedCode)
-              showLanguageDialog = false
-            },
-            shape = RoundedCornerShape(12.dp),
-          ) {
-            Text(stringResource(R.string.generic_confirm))
-          }
-        },
-        dismissButton = {
-          TextButton(onClick = { showLanguageDialog = false }) {
-            Text(stringResource(R.string.generic_cancel))
-          }
-        },
-        shape = RoundedCornerShape(24.dp),
-      )
-    }
-
     // Explanation Dialog
     if (showExplanationDialog) {
       val uriHandler = LocalUriHandler.current
-      val githubUrl = "https://github.com/mpvRex/REX-Player"
+      val githubUrl = "https://github.com/ItsMeSunnyMunda/Video-Player-Pro"
       val isPlayStoreBuild = BuildConfig.SCOPED_STORAGE_ONLY
 
       AlertDialog(

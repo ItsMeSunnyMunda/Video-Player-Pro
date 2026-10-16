@@ -690,7 +690,7 @@ fun FileSystemBrowserScreen(path: String? = null) {
           )
         },
       floatingActionButton = {
-        if (isAtRoot && !hidePlayFabShowInHeader) {
+        if (!hidePlayFabShowInHeader) {
           FloatingActionButtonMenu(
             modifier = Modifier.padding(bottom = navigationBarHeight + 8.dp),
             expanded = isFabExpanded.value,

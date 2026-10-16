@@ -1,4 +1,4 @@
-<resources>
+﻿<resources>
 
     <string name="generic_reset">Sıfırla</string>
     <string name="generic_share">Paylaş</string>
@@ -1348,7 +1348,7 @@
     <string name="pref_appearance_language_title">Uygulama Dili</string>
     <string name="pref_appearance_language_summary">Uygulamanın görüntüleme dilini değiştir</string>
 
-    <string name="welcome_title">mpvRex\'e Hoş Geldin</string>
+    <string name="welcome_title">Welcome to Video Player Pro</string>
     <string name="welcome_subtitle">Modern, güçlü ve özelleştirilebilir medya oynatıcın.</string>
     <string name="welcome_language_section_title">Tercih Edilen Dil</string>
     <string name="welcome_language_section_desc">Görüntüleme dilini seç</string>

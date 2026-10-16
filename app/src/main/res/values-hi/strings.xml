@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="generic_reset">रीसेट करें</string>
     <string name="generic_share">शेयर करना</string>
@@ -1156,7 +1156,7 @@
     <string name="system_default">सिस्टम डिफ्लॉल्ट</string>
     <string name="pref_appearance_language_title">ऐप भाषा</string>
     <string name="pref_appearance_language_summary">ऐप की डिस्प्ले भाषा बदलें</string>
-    <string name="welcome_title">mpvRex में आपका स्वागत है</string>
+    <string name="welcome_title">Welcome to Video Player Pro</string>
     <string name="welcome_subtitle">आपका आधुनिक, शक्तिशाली और अनुकूलन योग्य मीडिया प्लेयर।</string>
     <string name="welcome_language_section_title">पसंदीदा भाषा</string>
     <string name="welcome_language_section_desc">अपनी प्रदर्शन भाषा चुनें</string>
