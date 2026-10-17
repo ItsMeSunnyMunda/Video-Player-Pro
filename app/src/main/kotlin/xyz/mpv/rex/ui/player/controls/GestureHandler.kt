@@ -479,49 +479,10 @@ fun GestureHandler(
           // Original speed for long press
           var originalSpeed = playbackSpeed ?: 1f
 
-          // Track long press separately
+          // Hold to speed up removed
           var longPressTriggered = false
-          val longPressDelay = 500L
           var longPressJob = coroutineScope.launch {
-            delay(longPressDelay)
-            if (!longPressTriggered && paused == false) {
-              val distance = sqrt(
-                (down.position.x - startPosition.x) * (down.position.x - startPosition.x) +
-                (down.position.y - startPosition.y) * (down.position.y - startPosition.y)
-              )
-              // Only trigger if still within tap threshold
-              if (distance < 10f && multipleSpeedGesture > 0f) {
-                longPressTriggered = true
-                isLongPressing = true
-                longPressStartTime = System.currentTimeMillis()
-                longPressTriggeredDuringTouch = true
-                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                originalSpeed = playbackSpeed ?: 1f
-                // Ramp speed up incrementally to avoid audio filter stutter
-                val startSpeed = originalSpeed
-                val targetSpeed = multipleSpeedGesture
-                val steps = 5
-                val stepDelay = 16L // ~one frame per step
-                for (i in 1..steps) {
-                  val t = i.toFloat() / steps
-                  val intermediateSpeed = startSpeed + (targetSpeed - startSpeed) * t
-                  MPVLib.setPropertyFloat("speed", intermediateSpeed)
-                  if (i < steps) delay(stepDelay)
-                }
-
-                if (showDynamicSpeedOverlay) {
-                  isDynamicSpeedControlActive = true
-                  hasSwipedEnough = false
-                  hasIncrementedSpeedLockHint = false
-                  dynamicSpeedStartX = startPosition.x
-                  dynamicSpeedStartValue = multipleSpeedGesture
-                  lastAppliedSpeed = multipleSpeedGesture
-                  viewModel.playerUpdate.update { PlayerUpdates.DynamicSpeedControl(multipleSpeedGesture, false) }
-                } else {
-                  viewModel.playerUpdate.update { PlayerUpdates.MultipleSpeed }
-                }
-              }
-            }
+            // Disabled
           }
 
           var gestureType: String? = null

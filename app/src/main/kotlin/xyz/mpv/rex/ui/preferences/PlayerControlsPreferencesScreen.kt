@@ -1,8 +1,6 @@
 package xyz.mpv.rex.ui.preferences
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -10,57 +8,36 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import android.widget.Toast
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import xyz.mpv.rex.R
 import xyz.mpv.rex.preferences.AppearancePreferences
 import xyz.mpv.rex.preferences.PlayerButton
 import xyz.mpv.rex.preferences.allPlayerButtons
-import xyz.mpv.rex.preferences.PlayerPreferences
-import xyz.mpv.rex.ui.player.PlaybackControlsPosition
 import xyz.mpv.rex.preferences.preference.collectAsState
 import xyz.mpv.rex.presentation.Screen
 import xyz.mpv.rex.presentation.components.GroupPosition
 import xyz.mpv.rex.presentation.components.GroupedListColumn
 import xyz.mpv.rex.ui.utils.LocalBackStack
 import kotlinx.serialization.Serializable
-import me.zhanghai.compose.preference.ListPreference
 import me.zhanghai.compose.preference.ProvidePreferenceLocals
-import xyz.mpv.rex.ui.preferences.components.SwitchPreference
-import me.zhanghai.compose.preference.SliderPreference
-import xyz.mpv.rex.ui.player.controls.components.sheets.toFixed
 import xyz.mpv.rex.ui.preferences.components.PlayerButtonChip
 import org.koin.compose.koinInject
 
@@ -79,10 +56,8 @@ object PlayerControlsPreferencesScreen : Screen {
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     override fun Content() {
-        val context = LocalContext.current
         val backstack = LocalBackStack.current
         val appearancePrefs = koinInject<AppearancePreferences>()
-        val playerPrefs = koinInject<PlayerPreferences>()
 
         val topRState by appearancePrefs.topRightControls.collectAsState()
         val bottomRState by appearancePrefs.bottomRightControls.collectAsState()
@@ -251,247 +226,6 @@ object PlayerControlsPreferencesScreen : Screen {
                         }
                     }
 
-                    // Bottom Controls Layout Section
-                    item {
-                        PreferenceSectionHeader(title = stringResource(R.string.pref_controls_layout_header))
-                    }
-                    item {
-                        val bottomControlsBelowSeekbar by playerPrefs.bottomControlsBelowSeekbar.collectAsState()
-                        val playbackControlsPosition by playerPrefs.playbackControlsPosition.collectAsState()
-                        GroupedListColumn {
-                            GroupedPreferenceCard(
-                                position = GroupPosition.FIRST,
-                                highlightKey = R.string.pref_playback_controls_position_title,
-                            ) {
-                                ListPreference(
-                                    value = playbackControlsPosition,
-                                    onValueChange = { playerPrefs.playbackControlsPosition.set(it) },
-                                    values = PlaybackControlsPosition.entries,
-                                    valueToText = { AnnotatedString(context.getString(it.titleRes)) },
-                                    title = {
-                                        Text(text = stringResource(R.string.pref_playback_controls_position_title))
-                                    },
-                                    summary = {
-                                        Text(text = stringResource(playbackControlsPosition.titleRes))
-                                    },
-                                )
-                            }
-
-                            GroupedPreferenceCard(
-                                position = GroupPosition.LAST,
-                                highlightKey = R.string.pref_controls_layout_below_seekbar_title,
-                            ) {
-                                SwitchPreference(
-                                    value = bottomControlsBelowSeekbar,
-                                    onValueChange = { playerPrefs.bottomControlsBelowSeekbar.set(it) },
-                                    title = {
-                                        Text(text = stringResource(R.string.pref_controls_layout_below_seekbar_title))
-                                    },
-                                    summary = {
-                                        Text(
-                                            text = stringResource(
-                                                if (bottomControlsBelowSeekbar)
-                                                    R.string.pref_controls_layout_below_seekbar_summary_true
-                                                else
-                                                    R.string.pref_controls_layout_below_seekbar_summary_false
-                                            )
-                                        )
-                                    },
-                                )
-                            }
-                        }
-                    }
-
-                    // Appearance Section
-                    item {
-                        PreferenceSectionHeader(title = stringResource(R.string.pref_player_appearance_header))
-                    }
-                    item {
-                        val enableBounceAnimation by appearancePrefs.enableBounceAnimation.collectAsState()
-                        val showNextPreviousButtons by appearancePrefs.showNextPreviousButtons.collectAsState()
-                        val playerTimeToDisappear by playerPrefs.playerTimeToDisappear.collectAsState()
-                        val predefinedTimeValues = listOf(0, 500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000)
-                        val isCustomTimeValue = !predefinedTimeValues.contains(playerTimeToDisappear)
-                        val offLabel = stringResource(R.string.generic_off)
-                        val customLabel = stringResource(R.string.generic_custom)
-                        var showCustomTimeDialog by remember { mutableStateOf(false) }
-                        var customTimeValue by remember { mutableStateOf("") }
-                        val showControlsOnPlay by playerPrefs.showControlsOnPlay.collectAsState()
-                        val playerGradientOpacity by playerPrefs.playerGradientOpacity.collectAsState()
-
-                        GroupedListColumn {
-                            GroupedPreferenceCard(
-                                position = GroupPosition.FIRST,
-                                highlightKey = R.string.pref_appearance_enable_bounce_animation_title,
-                            ) {
-                                SwitchPreference(
-                                    value = enableBounceAnimation,
-                                    onValueChange = { appearancePrefs.enableBounceAnimation.set(it) },
-                                    title = {
-                                        Text(
-                                            text = stringResource(id = R.string.pref_appearance_enable_bounce_animation_title)
-                                        )
-                                    },
-                                    summary = {
-                                        Text(
-                                            text = stringResource(id = R.string.pref_appearance_enable_bounce_animation_summary)
-                                        )
-                                    },
-                                )
-                            }
-
-                            GroupedPreferenceCard(
-                                position = GroupPosition.MIDDLE,
-                                highlightKey = R.string.pref_appearance_show_next_previous_buttons_title,
-                            ) {
-                                SwitchPreference(
-                                    value = showNextPreviousButtons,
-                                    onValueChange = { appearancePrefs.showNextPreviousButtons.set(it) },
-                                    title = {
-                                        Text(
-                                            text = stringResource(id = R.string.pref_appearance_show_next_previous_buttons_title),
-                                        )
-                                    },
-                                    summary = {
-                                        Text(
-                                            text = stringResource(id = R.string.pref_appearance_show_next_previous_buttons_summary),
-                                        )
-                                    },
-                                )
-                            }
-
-                            GroupedPreferenceCard(
-                                position = GroupPosition.MIDDLE,
-                                highlightKey = R.string.pref_appearance_show_controls_on_play_title,
-                            ) {
-                                SwitchPreference(
-                                    value = showControlsOnPlay,
-                                    onValueChange = { playerPrefs.showControlsOnPlay.set(it) },
-                                    title = {
-                                        Text(text = stringResource(R.string.pref_appearance_show_controls_on_play_title))
-                                    },
-                                    summary = {
-                                        Text(text = stringResource(R.string.pref_appearance_show_controls_on_play_summary))
-                                    },
-                                )
-                            }
-
-                            GroupedPreferenceCard(
-                                position = GroupPosition.MIDDLE,
-                                highlightKey = R.string.pref_appearance_player_gradient_opacity_title,
-                            ) {
-                                SliderPreference(
-                                    value = playerGradientOpacity,
-                                    onValueChange = { playerPrefs.playerGradientOpacity.set(it.toFixed(2)) },
-                                    title = { Text(stringResource(R.string.pref_appearance_player_gradient_opacity_title)) },
-                                    valueRange = 0f..1f,
-                                    summary = {
-                                        val opacityPercent = (playerGradientOpacity * 100).toInt()
-                                        Text(
-                                            text = stringResource(
-                                                R.string.pref_appearance_player_gradient_opacity_current,
-                                                opacityPercent
-                                            ),
-                                            color = MaterialTheme.colorScheme.outline,
-                                        )
-                                    },
-                                    onSliderValueChange = { playerPrefs.playerGradientOpacity.set(it.toFixed(2)) },
-                                    sliderValue = playerGradientOpacity,
-                                )
-                            }
-
-                            GroupedPreferenceCard(
-                                position = GroupPosition.LAST,
-                                highlightKey = R.string.pref_player_display_hide_player_control_time,
-                            ) {
-                                ListPreference(
-                                    value = if (isCustomTimeValue) -1 else playerTimeToDisappear,
-                                    onValueChange = { newValue ->
-                                        if (newValue == -1) {
-                                            customTimeValue = playerTimeToDisappear.toString()
-                                            showCustomTimeDialog = true
-                                        } else {
-                                            playerPrefs.playerTimeToDisappear.set(newValue)
-                                        }
-                                    },
-                                    values = predefinedTimeValues + listOf(-1),
-                                    valueToText = { value ->
-                                        when (value) {
-                                            0 -> AnnotatedString(offLabel)
-                                            -1 -> AnnotatedString(customLabel)
-                                            else -> AnnotatedString("$value ms")
-                                        }
-                                    },
-                                    title = { Text(text = stringResource(R.string.pref_player_display_hide_player_control_time)) },
-                                    summary = {
-                                        Text(
-                                            text = when {
-                                                playerTimeToDisappear == 0 -> offLabel
-                                                isCustomTimeValue -> {
-                                                    stringResource(
-                                                        R.string.pref_player_display_custom_time_summary,
-                                                        playerTimeToDisappear
-                                                    )
-                                                }
-                                                else -> {
-                                                    stringResource(
-                                                        R.string.pref_player_display_time_ms_format,
-                                                        playerTimeToDisappear
-                                                    )
-                                                }
-                                            },
-                                            color = MaterialTheme.colorScheme.outline,
-                                        )
-                                    },
-                                )
-                            }
-                        }
-
-                        if (showCustomTimeDialog) {
-                            AlertDialog(
-                                onDismissRequest = { showCustomTimeDialog = false },
-                                title = { Text(text = stringResource(R.string.pref_player_display_hide_player_control_time)) },
-                                text = {
-                                    Column(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .verticalScroll(rememberScrollState()),
-                                    ) {
-                                        Text(
-                                            text = stringResource(R.string.pref_player_display_custom_hide_time_dialog_message),
-                                            modifier = Modifier.padding(bottom = 8.dp),
-                                        )
-                                        OutlinedTextField(
-                                            value = customTimeValue,
-                                            onValueChange = { customTimeValue = it },
-                                            label = { Text(stringResource(id = R.string.milliseconds)) },
-                                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                            modifier = Modifier.fillMaxWidth(),
-                                            singleLine = true,
-                                        )
-                                    }
-                                },
-                                confirmButton = {
-                                    TextButton(
-                                        onClick = {
-                                            val value = customTimeValue.toIntOrNull()
-                                            if (value != null && value in 0..1000000000) {
-                                                playerPrefs.playerTimeToDisappear.set(value)
-                                                showCustomTimeDialog = false
-                                            }
-                                        },
-                                    ) {
-                                        Text(stringResource(R.string.generic_ok))
-                                    }
-                                },
-                                dismissButton = {
-                                    TextButton(onClick = { showCustomTimeDialog = false }) {
-                                        Text(stringResource(R.string.generic_cancel))
-                                    }
-                                },
-                            )
-                        }
-                    }
                 }
             }
         }

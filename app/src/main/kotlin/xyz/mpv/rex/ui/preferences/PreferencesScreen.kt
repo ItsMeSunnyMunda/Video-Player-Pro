@@ -124,18 +124,11 @@ object PreferencesScreen : Screen {
                   onClick = { backstack.add(PlayerPreferencesScreen) },
                 )
                 PreferenceItem(
-                  position = GroupPosition.MIDDLE,
+                  position = GroupPosition.LAST,
                   title = stringResource(id = R.string.pref_layout_title),
                   summary = stringResource(id = R.string.pref_layout_summary),
                   icon = Icons.AutoMirrored.Outlined.ViewQuilt,
                   onClick = { backstack.add(PlayerControlsPreferencesScreen) },
-                )
-                PreferenceItem(
-                  position = GroupPosition.LAST,
-                  title = stringResource(id = R.string.pref_gesture),
-                  summary = stringResource(id = R.string.pref_gesture_summary),
-                  icon = Icons.Outlined.Gesture,
-                  onClick = { backstack.add(GesturePreferencesScreen) },
                 )
               }
             }

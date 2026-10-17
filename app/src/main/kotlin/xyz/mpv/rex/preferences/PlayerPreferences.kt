@@ -16,7 +16,7 @@ class PlayerPreferences(
   val orientation = preferenceStore.getEnum("player_orientation", PlayerOrientation.Video)
   val backgroundPlayback = preferenceStore.getEnum("background_playback_mode", BackgroundPlaybackMode.Never)
   val invertDuration = preferenceStore.getBoolean("invert_duration")
-  val holdForMultipleSpeed = preferenceStore.getFloat("hold_for_multiple_speed", 2f)
+  val holdForMultipleSpeed = preferenceStore.getFloat("hold_for_multiple_speed", 0f)
   val rememberLongPressSpeed = preferenceStore.getBoolean("remember_long_press_speed", true)
   val showDynamicSpeedOverlay = preferenceStore.getBoolean("show_dynamic_speed_overlay", true)
   val showSpeedIndicatorOverlay = preferenceStore.getBoolean("show_speed_indicator_overlay", true)
@@ -49,7 +49,7 @@ class PlayerPreferences(
     )
   val displayVolumeAsPercentage = preferenceStore.getBoolean("display_volume_as_percentage", true)
   val swapVolumeAndBrightness = preferenceStore.getBoolean("display_volume_on_right")
-  val showLoadingCircle = preferenceStore.getBoolean("show_loading_circle", true)
+  val showLoadingCircle = preferenceStore.getBoolean("show_loading_circle", false)
   val savePositionOnQuit = preferenceStore.getBoolean("save_position", true)
   val resumePlaybackMode = preferenceStore.getEnum("resume_playback_mode", ResumePlaybackMode.Always)
   val autoResumeOnAsk = preferenceStore.getBoolean("auto_resume_on_ask", true)
@@ -60,11 +60,11 @@ class PlayerPreferences(
   val defaultBrightness = preferenceStore.getFloat("default_brightness", -1f)
 
   val allowGesturesInPanels = preferenceStore.getBoolean("allow_gestures_in_panels")
-  val showSystemStatusBar = preferenceStore.getBoolean("show_system_status_bar")
-  val showSystemNavigationBar = preferenceStore.getBoolean("show_system_navigation_bar")
+  val showSystemStatusBar = preferenceStore.getBoolean("show_system_status_bar", true)
+  val showSystemNavigationBar = preferenceStore.getBoolean("show_system_navigation_bar", false)
   val reduceMotion = preferenceStore.getBoolean("reduce_motion", true)
   val playerGradientOpacity = preferenceStore.getFloat("player_gradient_opacity", 1.0f)
-  val playerTimeToDisappear = preferenceStore.getInt("player_time_to_disappear", 4000)
+  val playerTimeToDisappear = preferenceStore.getInt("player_time_to_disappear", 2000)
 
   val defaultVideoZoom = preferenceStore.getFloat("default_video_zoom", 0f)
   val defaultVideoPanX = preferenceStore.getFloat("default_video_pan_x", 0f)
@@ -85,8 +85,8 @@ class PlayerPreferences(
   val playInMiniPlayerDirectly = preferenceStore.getBoolean("play_in_mini_player_directly", false)
 
   val useWavySeekbar = preferenceStore.getBoolean("use_wavy_seekbar", true)
-  val bottomControlsBelowSeekbar = preferenceStore.getBoolean("bottom_controls_below_seekbar", false)
-  val playbackControlsPosition = preferenceStore.getEnum("playback_controls_position", PlaybackControlsPosition.Center)
+  val bottomControlsBelowSeekbar = preferenceStore.getBoolean("bottom_controls_below_seekbar", true)
+  val playbackControlsPosition = preferenceStore.getEnum("playback_controls_position", PlaybackControlsPosition.Bottom)
   val showSeekBarWhenSeeking = preferenceStore.getBoolean("show_seekbar_when_seeking", false)
   val whiteSeekBar = preferenceStore.getBoolean("white_seekbar", false)
   val showSeekbarChapters = preferenceStore.getBoolean("show_seekbar_chapters", false)
@@ -101,7 +101,7 @@ class PlayerPreferences(
   // New: autoplay next video when current file ends
   val autoplayNextVideo = preferenceStore.getBoolean("autoplay_next_video", true)
   val autoplayOnOpen = preferenceStore.getBoolean("autoplay_on_open", true)
-  val showControlsOnPlay = preferenceStore.getBoolean("show_controls_on_play", true)
+  val showControlsOnPlay = preferenceStore.getBoolean("show_controls_on_play", false)
 
   val autoPiPOnNavigation = preferenceStore.getBoolean("auto_pip_on_navigation", false)
 

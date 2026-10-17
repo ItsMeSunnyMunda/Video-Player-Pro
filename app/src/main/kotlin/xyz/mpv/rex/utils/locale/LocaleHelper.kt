@@ -104,7 +104,7 @@ object LocaleHelper {
       val tag = appLocales.toLanguageTags()
       return mapTagToCode(tag)
     }
-    return ""
+    return "en"
   }
 
   fun getCurrentLanguage(context: Context): AppLanguage {

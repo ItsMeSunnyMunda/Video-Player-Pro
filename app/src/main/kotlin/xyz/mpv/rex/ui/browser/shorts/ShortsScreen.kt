@@ -815,7 +815,7 @@ private fun ShortPageItem(
                         val screenWidth = size.width.toFloat()
                         val isLeftOrRight = startX < screenWidth * 0.35f || startX > screenWidth * 0.65f
                         
-                        if (isLeftOrRight && isSettled && isPlaying && !isPaused) {
+                        if (isLeftOrRight && isSettled && isPlaying && !isPaused && holdForMultipleSpeed > 0f) {
                             var longPressTriggered = false
                             val job = coroutineScope.launch {
                                 delay(400)
