@@ -15,8 +15,8 @@ import xyz.mpv.rex.ui.player.controls.components.panels.SubtitlesBorderStyle
 class SubtitlesPreferences(
   preferenceStore: PreferenceStore,
 ) {
-  val preferredLanguages = preferenceStore.getString("sub_preferred_languages")
-  val disableSubtitlesByDefault = preferenceStore.getBoolean("sub_disable_by_default", false)
+  val preferredLanguages = preferenceStore.getString("sub_preferred_languages", "eng,en")
+  val disableSubtitlesByDefault = preferenceStore.getBoolean("sub_disable_by_default", true)
   val autoloadMatchingSubtitles = preferenceStore.getBoolean("sub_autoload_enabled", true)
 
   val fontsFolder = preferenceStore.getString("sub_fonts_folder")
@@ -49,7 +49,7 @@ class SubtitlesPreferences(
   
   val pickerPath = preferenceStore.getString("sub_picker_path")
   val customSubtitleFolder = preferenceStore.getString("sub_custom_folder", "")
-  val openPickerAtVideoLocation = preferenceStore.getBoolean("sub_open_at_video_location", false)
+  val openPickerAtVideoLocation = preferenceStore.getBoolean("sub_open_at_video_location", true)
   
   val subdlApiKey = preferenceStore.getString("subdl_api_key", "")
   val subtitleSaveFolder = preferenceStore.getString("sub_save_folder", "")

@@ -97,21 +97,6 @@ object PreferencesScreen : Screen {
         ) {
 
 
-          // UI & Appearance Section
-          item {
-            PreferenceSection(title = stringResource(R.string.pref_category_ui_appearance)) {
-              GroupedListColumn {
-                PreferenceItem(
-                  position = GroupPosition.ONLY,
-                  title = stringResource(id = R.string.pref_appearance_title),
-                  summary = stringResource(id = R.string.pref_appearance_summary),
-                  icon = Icons.Outlined.Palette,
-                  onClick = { backstack.add(AppearancePreferencesScreen) },
-                )
-              }
-            }
-          }
-
           // Playback & Controls Section
           item {
             PreferenceSection(title = stringResource(R.string.pref_category_playback_controls)) {
@@ -144,35 +129,6 @@ object PreferencesScreen : Screen {
                   summary = stringResource(R.string.pref_media_library_summary),
                   icon = Icons.Outlined.VideoLibrary,
                   onClick = { backstack.add(MediaLibraryPreferencesScreen) },
-                )
-              }
-            }
-          }
-
-          // Media Settings Section
-          item {
-            PreferenceSection(title = stringResource(R.string.pref_category_media_settings)) {
-              GroupedListColumn {
-                PreferenceItem(
-                  position = GroupPosition.FIRST,
-                  title = stringResource(id = R.string.pref_decoder),
-                  summary = stringResource(id = R.string.pref_decoder_summary),
-                  icon = Icons.Outlined.Memory,
-                  onClick = { backstack.add(DecoderPreferencesScreen) },
-                )
-                PreferenceItem(
-                  position = GroupPosition.MIDDLE,
-                  title = stringResource(id = R.string.pref_subtitles),
-                  summary = stringResource(id = R.string.pref_subtitles_summary),
-                  icon = Icons.Outlined.Subtitles,
-                  onClick = { backstack.add(SubtitlesPreferencesScreen) },
-                )
-                PreferenceItem(
-                  position = GroupPosition.LAST,
-                  title = stringResource(id = R.string.pref_audio),
-                  summary = stringResource(id = R.string.pref_audio_summary),
-                  icon = Icons.Outlined.Audiotrack,
-                  onClick = { backstack.add(AudioPreferencesScreen) },
                 )
               }
             }

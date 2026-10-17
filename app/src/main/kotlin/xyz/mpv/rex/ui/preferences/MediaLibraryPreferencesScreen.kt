@@ -1,8 +1,6 @@
 package xyz.mpv.rex.ui.preferences
 
-import android.content.Intent
 import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -16,34 +14,23 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import xyz.mpv.rex.R
-import xyz.mpv.rex.database.repository.HybridMediaIndexRepository
 import xyz.mpv.rex.database.repository.VideoMetadataCacheRepository
-import xyz.mpv.rex.preferences.BrowserPreferences
-import xyz.mpv.rex.preferences.FoldersPreferences
-import xyz.mpv.rex.preferences.preference.collectAsState
 import xyz.mpv.rex.presentation.Screen
 import xyz.mpv.rex.presentation.components.GroupPosition
 import xyz.mpv.rex.presentation.components.GroupedListColumn
-import xyz.mpv.rex.ui.browser.sheets.AutoPlaylistsSheet
 import xyz.mpv.rex.ui.utils.LocalBackStack
-import xyz.mpv.rex.utils.media.MediaLibraryEvents
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import me.zhanghai.compose.preference.Preference
 import me.zhanghai.compose.preference.ProvidePreferenceLocals
-import xyz.mpv.rex.ui.preferences.components.SwitchPreference
 import org.koin.compose.koinInject
 
 @Serializable
@@ -51,18 +38,11 @@ object MediaLibraryPreferencesScreen : Screen {
   @OptIn(ExperimentalMaterial3Api::class)
   @Composable
   override fun Content() {
-    val browserPreferences = koinInject<BrowserPreferences>()
-    val foldersPreferences = koinInject<FoldersPreferences>()
-    val hybridMediaIndex = koinInject<HybridMediaIndexRepository>()
     val metadataCache = koinInject<VideoMetadataCacheRepository>()
 
     val backstack = LocalBackStack.current
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-
-    val includeNoMediaContent by browserPreferences.includeNoMediaContent.collectAsState()
-    val libraryScanRoots by foldersPreferences.libraryScanRoots.collectAsState()
-    var showAutoPlaylistsSheet by remember { mutableStateOf(false) }
 
     Scaffold(
       topBar = {
@@ -96,100 +76,6 @@ object MediaLibraryPreferencesScreen : Screen {
             .padding(padding),
           contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = navBarHeight + 16.dp),
         ) {
-          // Content & Discovery Section
-          item {
-            PreferenceSectionHeader(title = stringResource(R.string.pref_category_content_discovery))
-          }
-
-          item {
-            GroupedListColumn {
-              GroupedPreferenceCard(
-                position = GroupPosition.FIRST,
-                highlightKey = listOf(R.string.pref_media_library_title, R.string.pref_include_no_media_content_title),
-              ) {
-                SwitchPreference(
-                  value = includeNoMediaContent,
-                  onValueChange = { newValue ->
-                    browserPreferences.includeNoMediaContent.set(newValue)
-                    MediaLibraryEvents.notifyChanged()
-                    scope.launch(Dispatchers.IO) {
-                      runCatching { hybridMediaIndex.ensureFresh(force = true, userInitiated = true) }
-                    }
-                  },
-                  title = { Text(text = stringResource(R.string.pref_include_no_media_content_title)) },
-                  summary = {
-                    Text(
-                      text = stringResource(R.string.pref_include_no_media_content_summary),
-                      color = MaterialTheme.colorScheme.outline,
-                    )
-                  },
-                )
-              }
-
-
-              GroupedPreferenceCard(
-                position = GroupPosition.LAST,
-                highlightKey = R.string.auto_playlists,
-              ) {
-                Preference(
-                  title = { Text(text = stringResource(R.string.auto_playlists)) },
-                  summary = {
-                    Text(
-                      text = stringResource(R.string.auto_playlists_desc),
-                      color = MaterialTheme.colorScheme.outline,
-                    )
-                  },
-                  onClick = { showAutoPlaylistsSheet = true },
-                )
-              }
-            }
-          }
-
-          // Storage & Exclusions Section
-          item {
-            PreferenceSectionHeader(title = stringResource(R.string.pref_category_storage_exclusions))
-          }
-
-          item {
-            GroupedListColumn {
-              GroupedPreferenceCard(
-                position = GroupPosition.FIRST,
-                highlightKey = R.string.pref_folders_title,
-              ) {
-                Preference(
-                  title = { Text(text = stringResource(R.string.pref_folders_title)) },
-                  summary = {
-                    Text(
-                      text = stringResource(R.string.pref_folders_summary),
-                      color = MaterialTheme.colorScheme.outline,
-                    )
-                  },
-                  onClick = { backstack.add(FoldersPreferencesScreen) },
-                )
-              }
-
-              GroupedPreferenceCard(
-                position = GroupPosition.LAST,
-                highlightKey = R.string.pref_library_roots_title,
-              ) {
-                Preference(
-                  title = { Text(text = stringResource(R.string.pref_library_roots_title)) },
-                  summary = {
-                    Text(
-                      text = if (libraryScanRoots.isEmpty()) {
-                        stringResource(R.string.pref_library_roots_empty_title)
-                      } else {
-                        stringResource(R.string.pref_library_root_count, libraryScanRoots.size)
-                      },
-                      color = MaterialTheme.colorScheme.outline,
-                    )
-                  },
-                  onClick = { backstack.add(LibraryRootsPreferencesScreen) },
-                )
-              }
-            }
-          }
-
           // Library Maintenance Section
           item {
             PreferenceSectionHeader(title = stringResource(R.string.pref_category_library_maintenance))
@@ -198,28 +84,7 @@ object MediaLibraryPreferencesScreen : Screen {
           item {
             GroupedListColumn {
               GroupedPreferenceCard(
-                position = GroupPosition.FIRST,
-                highlightKey = R.string.pref_rescan_library_title,
-              ) {
-                Preference(
-                  title = { Text(text = stringResource(R.string.pref_rescan_library_title)) },
-                  summary = {
-                    Text(
-                      text = stringResource(R.string.pref_rescan_library_summary),
-                      color = MaterialTheme.colorScheme.outline,
-                    )
-                  },
-                  onClick = {
-                    scope.launch(Dispatchers.IO) {
-                      runCatching { hybridMediaIndex.ensureFresh(force = true, userInitiated = true) }
-                    }
-                    Toast.makeText(context, context.getString(R.string.pref_rescan_started_toast), Toast.LENGTH_SHORT).show()
-                  },
-                )
-              }
-
-              GroupedPreferenceCard(
-                position = GroupPosition.LAST,
+                position = GroupPosition.ONLY,
                 highlightKey = R.string.pref_clear_metadata_cache_title,
               ) {
                 Preference(
@@ -242,11 +107,6 @@ object MediaLibraryPreferencesScreen : Screen {
           }
         }
       }
-
-      AutoPlaylistsSheet(
-        isOpen = showAutoPlaylistsSheet,
-        onDismiss = { showAutoPlaylistsSheet = false },
-      )
     }
   }
 }

@@ -313,30 +313,7 @@ object AboutScreen : Screen {
             }
           }
 
-          Spacer(Modifier.height(8.dp))
 
-          PreferenceSectionHeader(title = stringResource(R.string.pref_decoder_codec_info_title))
-          GroupedListColumn {
-            GroupedPreferenceCard(position = GroupPosition.ONLY) {
-              Preference(
-                title = { Text(text = stringResource(R.string.pref_decoder_codec_info_title)) },
-                summary = {
-                  Text(
-                    text = stringResource(R.string.pref_decoder_codec_info_summary),
-                    color = MaterialTheme.colorScheme.outline,
-                  )
-                },
-                icon = {
-                  Icon(
-                    imageVector = Icons.Default.Memory,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                  )
-                },
-                onClick = { backstack.add(CodecInformationScreen) },
-              )
-            }
-          }
 
 
 
