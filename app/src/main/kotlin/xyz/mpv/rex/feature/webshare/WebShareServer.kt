@@ -186,7 +186,7 @@ class WebShareServer(
     }
 
     val response = newChunkedResponse(Response.Status.OK, "application/zip", pipedIn)
-    response.addHeader("Content-Disposition", "attachment; filename=\"REX_Player_shared_files.zip\"")
+    response.addHeader("Content-Disposition", "attachment; filename=\"Video_Player_Pro_shared_files.zip\"")
     return response
   }
 
@@ -228,7 +228,7 @@ class WebShareServer(
   private fun handleUpload(session: IHTTPSession): Response {
     return try {
       val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-      val rexPlayerDir = File(downloadsDir, "REX Player")
+      val rexPlayerDir = File(downloadsDir, "Video Player Pro")
       if (!rexPlayerDir.exists()) {
         rexPlayerDir.mkdirs()
       }

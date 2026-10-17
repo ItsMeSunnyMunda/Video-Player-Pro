@@ -153,7 +153,7 @@ class WebShareService : Service() {
 
     return NotificationCompat.Builder(this, CHANNEL_ID)
       .setSmallIcon(R.drawable.baseline_share_24)
-      .setContentTitle("REX Player Web Share")
+      .setContentTitle("Video Player Pro Web Share")
       .setContentText(contentText)
       .setSubText(subText)
       .setOngoing(true)

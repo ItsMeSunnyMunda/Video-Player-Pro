@@ -68,6 +68,7 @@ class App : Application() {
     registerHybridIndexObservers()
 
     applicationScope.launch {
+      kotlinx.coroutines.delay(3_000)
       runCatching { hybridMediaIndex.ensureFresh() }
     }
     applicationScope.launch {
@@ -85,8 +86,9 @@ class App : Application() {
         }
     }
 
-    // Perform cache maintenance on app startup (non-blocking)
+    // Perform cache maintenance after app startup settles
     applicationScope.launch {
+      kotlinx.coroutines.delay(5_000)
       runCatching {
         metadataCache.performMaintenance()
       }
@@ -101,11 +103,6 @@ class App : Application() {
     }
     contentResolver.registerContentObserver(
       MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
-      true,
-      observer,
-    )
-    contentResolver.registerContentObserver(
-      MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
       true,
       observer,
     )

@@ -1,4 +1,4 @@
-﻿<resources>
+<resources>
 
     <string name="generic_reset">Restablecer</string>
     <string name="generic_share">Compartir</string>
@@ -878,16 +878,16 @@
     <string name="why_do_i_see_this">¿Por qué veo esto?</string>
     <string name="why_this_permission_is_needed">¿Por qué se necesita este permiso?</string>
     <string name="permission_used_exclusively_for">El permiso se utiliza exclusivamente para:</string>
-    <string name="permission_explanation_playstore_intro">mpvRex necesita acceso a sus archivos de video para proporcionar su funcionalidad principal como reproductor multimedia.</string>
+    <string name="permission_explanation_playstore_intro">Video Player Pro necesita acceso a sus archivos de video para proporcionar su funcionalidad principal como reproductor multimedia.</string>
     <string name="permission_usage_bullet_list">• Descubrir y mostrar sus archivos de vídeo\n• Reproducción de contenido multimedia\n• Cargar sus archivos de subtitulos</string>
-    <string name="permission_explanation_standard_intro">mpvRex siempre ha requerido permiso de acceso al almacenamiento, ya que es esencial que la aplicación encuentre todos los archivos multimedia y de subtítulos en su dispositivo, incluidos los que no son compatibles con el sistema.</string>
+    <string name="permission_explanation_standard_intro">Video Player Pro siempre ha requerido permiso de acceso al almacenamiento, ya que es esencial que la aplicación encuentre todos los archivos multimedia y de subtítulos en su dispositivo, incluidos los que no son compatibles con el sistema.</string>
     <string name="permission_security_policy_change">Sin embargo, debido a un cambio en la política de seguridad, las aplicaciones creadas para Android 11 y versiones posteriores ahora requieren permiso adicional para continuar accediendo a las mismas.</string>
     <string name="permission_privacy_assurance_standard">Tenga en cuenta que este permiso solo se utiliza para el descubrimiento automático de archivos multimedia/subtítulos en su dispositivo y no nos permitirá acceder a los archivos de datos privados almacenados por otras aplicaciones de ninguna manera.</string>
-    <string name="opensource_github_notice">mpvRex es un proyecto de código abierto. Puede revisar el código fuente y verificar cómo se utilizan los permisos visitando nuestro repositorio de GitHub en:</string>
+    <string name="opensource_github_notice">Video Player Pro es un proyecto de código abierto. Puede revisar el código fuente y verificar cómo se utilizan los permisos visitando nuestro repositorio de GitHub en:</string>
     <string name="privacy_assurance_final">Tenga la seguridad de que su privacidad es nuestra máxima prioridad y no accedemos a sus archivos para otros fines ni los transferimos ni almacenamos en nuestros servidores. Permanecen seguros en su dispositivo.</string>
-    <string name="permission_required_photos_videos">mpvRex requiere permiso de \"Fotos y videos\" para acceder y reproducir sus archivos de video almacenados en su dispositivo.</string>
-    <string name="permission_required_storage">mpvRex requiere permiso de \"Almacenamiento\" para acceder y reproducir sus archivos multimedia almacenados en su dispositivo.</string>
-    <string name="permission_required_all_files">mpvRex requiere permiso de \"Acceso a todos los archivos\" para descubrir medios y subtítulos en su dispositivo debido a un cambio en la política de seguridad en Android 11 y versiones posteriores.</string>
+    <string name="permission_required_photos_videos">Video Player Pro requiere permiso de \"Fotos y videos\" para acceder y reproducir sus archivos de video almacenados en su dispositivo.</string>
+    <string name="permission_required_storage">Video Player Pro requiere permiso de \"Almacenamiento\" para acceder y reproducir sus archivos multimedia almacenados en su dispositivo.</string>
+    <string name="permission_required_all_files">Video Player Pro requiere permiso de \"Acceso a todos los archivos\" para descubrir medios y subtítulos en su dispositivo debido a un cambio en la política de seguridad en Android 11 y versiones posteriores.</string>
     <string name="permission_explanation_tiramisu_plus">En Android 13 y versiones posteriores, este permiso permite que la aplicación lea archivos de video desde el almacenamiento de su dispositivo, incluidas las carpetas Descargas, Películas y DCIM.</string>
     <string name="permission_explanation_pre_tiramisu">Este permiso permite que la aplicación lea archivos multimedia desde el almacenamiento de su dispositivo para reproducir videos y audio.</string>
     <string name="playlist_separator">• %1$s</string>
@@ -1287,7 +1287,7 @@
     <string name="welcome_language_section_title">Idioma preferido</string>
     <string name="welcome_language_section_desc">Selecciona el idioma de visualización</string>
     <string name="storage_access_granted">Acceso al almacenamiento concedido</string>
-    <string name="storage_access_granted_desc">Se ha otorgado el permiso. mpvRex está listo para detectar y reproducir tus archivos multimedia.</string>
+    <string name="storage_access_granted_desc">Se ha otorgado el permiso. Video Player Pro está listo para detectar y reproducir tus archivos multimedia.</string>
     <string name="welcome_grant_permission">Conceder permiso</string>
     <string name="welcome_get_started">Empezar</string>
     <string name="welcome_skip_permission">Continuar sin acceso al almacenamiento</string>
@@ -1349,7 +1349,7 @@
     <string name="web_share_require_token_enabled_desc">Se requiere el token ?t= para ver los archivos</string>
     <string name="web_share_require_token_disabled_desc">Acceso libre (rápido y fácil)</string>
     <string name="web_share_received_title">Recibido (%1$d)</string>
-    <string name="web_share_received_path">Descargar/REX Player</string>
+    <string name="web_share_received_path">Descargar/Video Player Pro</string>
     <string name="web_share_copy_link">Copiar enlace</string>
     <string name="web_share_link_copied">Enlace copiado al portapapeles</string>
     <string name="web_share_step_2">Escanee el código QR o escriba la URL en cualquier navegador</string>

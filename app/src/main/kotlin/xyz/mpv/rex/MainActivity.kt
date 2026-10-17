@@ -3,10 +3,7 @@ package xyz.mpv.rex
 import android.app.Activity
 import android.os.Bundle
 import android.util.Log
-import android.content.Intent
 import androidx.activity.compose.BackHandler
-import androidx.core.net.toUri
-import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
@@ -24,7 +21,6 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -41,9 +37,6 @@ import androidx.navigation3.ui.NavDisplay
 import xyz.mpv.rex.preferences.AppearancePreferences
 import xyz.mpv.rex.preferences.preference.collectAsState
 import xyz.mpv.rex.presentation.Screen
-import xyz.mpv.rex.repository.NetworkRepository
-import xyz.mpv.rex.utils.update.UpdateDialog
-import xyz.mpv.rex.utils.update.UpdateManager
 import xyz.mpv.rex.utils.update.UpdateViewModel
 import xyz.mpv.rex.ui.browser.MainScreen
 import xyz.mpv.rex.ui.theme.DarkMode
@@ -77,7 +70,6 @@ val LocalUpdateViewModel = staticCompositionLocalOf<UpdateViewModel?> { null }
  */
 class MainActivity : ComponentActivity() {
   private val appearancePreferences by inject<AppearancePreferences>()
-  private val networkRepository by inject<NetworkRepository>()
   private val miniPlayerStateManager by inject<MiniPlayerStateManager>()
   
   // Create a coroutine scope tied to the activity lifecycle
@@ -95,13 +87,9 @@ class MainActivity : ComponentActivity() {
   }
 
   override fun onCreate(savedInstanceState: Bundle?) {
-    installSplashScreen()
     super.onCreate(savedInstanceState)
     
     PermissionUtils.setMediaAccessLauncher(mediaAccessLauncher)
-
-    // Register proxy lifecycle observer for network streaming
-    lifecycle.addObserver(xyz.mpv.rex.ui.browser.networkstreaming.proxy.ProxyLifecycleObserver())
 
     setContent {
       // Set up theme and edge-to-edge display
@@ -114,11 +102,6 @@ class MainActivity : ComponentActivity() {
           darkScrim = Color.Transparent.toArgb(),
         ) { isDarkMode },
       )
-
-      // Auto-connect to saved network connections
-      LaunchedEffect(Unit) {
-        autoConnectToNetworks()
-      }
 
       MpvexTheme {
         Surface {
@@ -133,41 +116,6 @@ class MainActivity : ComponentActivity() {
       super.onDestroy()
     } catch (e: Exception) {
       Log.e("MainActivity", "Error during onDestroy", e)
-    }
-  }
-
-  /**
-   * Auto-connect to network connections that are marked for auto-connection
-   */
-  private suspend fun autoConnectToNetworks() {
-    // Delay auto-connect to let UI settle first
-    kotlinx.coroutines.delay(500)
-    
-    // Use coroutineScope for properly structured concurrency
-    withContext(Dispatchers.IO) {
-      try {
-        val autoConnectConnections = networkRepository.getAutoConnectConnections()
-        autoConnectConnections.forEach { connection ->
-          withContext(Dispatchers.Main) {
-            Log.d("MainActivity", "Auto-connecting to: ${connection.name}")
-          }
-          networkRepository.connect(connection)
-            .onSuccess {
-              withContext(Dispatchers.Main) {
-                Log.d("MainActivity", "Auto-connected successfully: ${connection.name}")
-              }
-            }
-            .onFailure { e ->
-              withContext(Dispatchers.Main) {
-                Log.e("MainActivity", "Auto-connect failed for ${connection.name}: ${e.message}")
-              }
-            }
-        }
-      } catch (e: Exception) {
-        withContext(Dispatchers.Main) {
-          Log.e("MainActivity", "Error during auto-connect", e)
-        }
-      }
     }
   }
 
@@ -190,25 +138,7 @@ class MainActivity : ComponentActivity() {
     @Suppress("UNCHECKED_CAST")
     val typedBackstack = backstack as NavBackStack<Screen>
 
-    val currentVersion = if (UpdateManager.isPreviewBuild()) {
-      val count = BuildConfig.GIT_COUNT.takeIf { it > 0 }
-        ?: BuildConfig.VERSION_NAME.substringAfterLast('-', "").toIntOrNull()
-        ?: 0
-      "r$count"
-    } else {
-      BuildConfig.VERSION_NAME.replace("-dev", "")
-    }
-
-    // Conditionally initialize update feature based on build config
-    val updateViewModel: UpdateViewModel? = if (BuildConfig.ENABLE_UPDATE_FEATURE) {
-      viewModel(context as ComponentActivity)
-    } else {
-      null
-    }
-    val updateState by (updateViewModel?.updateState ?: MutableStateFlow(UpdateViewModel.UpdateState.Idle)).collectAsState()
-    val companionUpdateState by (updateViewModel?.companionUpdateState ?: MutableStateFlow(UpdateViewModel.UpdateState.Idle)).collectAsState()
-    val isDownloading by (updateViewModel?.isDownloading ?: MutableStateFlow(false)).collectAsState()
-    val downloadProgress by (updateViewModel?.downloadProgress ?: MutableStateFlow(0f)).collectAsState()
+    val updateViewModel: UpdateViewModel? = null
     val miniPlayerState by miniPlayerStateManager.state.collectAsState()
     val hideNavigationBar by MainScreen.shouldHideNavigationBar.collectAsState()
     val currentRoute = typedBackstack.lastOrNull()
@@ -290,96 +220,6 @@ class MainActivity : ComponentActivity() {
             .navigationBarsPadding()
             .padding(bottom = animatedBottomPadding)
         )
-      }
-
-      // Display Update Dialog when appropriate (only if update feature is enabled)
-      if (BuildConfig.ENABLE_UPDATE_FEATURE && updateViewModel != null) {
-        when (updateState) {
-          is UpdateViewModel.UpdateState.Available -> {
-            val release = (updateState as UpdateViewModel.UpdateState.Available).release
-            UpdateDialog(
-              release = release,
-              isDownloading = isDownloading,
-              progress = downloadProgress,
-              actionLabel = if (isDownloading) "Downloading..." else "Download",
-              currentVersion = currentVersion,
-              onDismiss = { updateViewModel.dismiss() },
-              onAction = { 
-                // Redirect to GitHub releases page as requested by user
-                context.startActivity(
-                  Intent(
-                    Intent.ACTION_VIEW, 
-                    (release.htmlUrl ?: if (UpdateManager.isPreviewBuild()) {
-                      UpdateManager.PREVIEW_PAGE_URL
-                    } else {
-                      "https://github.com/ItsMeSunnyMunda/Video-Player-Pro/releases/latest"
-                    }).toUri()
-                  )
-                )
-                // updateViewModel.downloadUpdate(release) // Kept in code but disabled for now
-              },
-              onIgnore = { updateViewModel.ignoreVersion(release.tagName.removePrefix("v")) }
-            )
-          }
-          is UpdateViewModel.UpdateState.ReadyToInstall -> {
-            val release = (updateState as UpdateViewModel.UpdateState.ReadyToInstall).release
-            UpdateDialog(
-              release = release,
-              isDownloading = isDownloading,
-              progress = downloadProgress,
-              actionLabel = "Install",
-              currentVersion = currentVersion,
-              onDismiss = { updateViewModel.dismiss() },
-              onAction = { 
-                // Redirect to GitHub releases page as requested by user
-                context.startActivity(
-                  Intent(
-                    Intent.ACTION_VIEW, 
-                    (release.htmlUrl ?: if (UpdateManager.isPreviewBuild()) {
-                      UpdateManager.PREVIEW_PAGE_URL
-                    } else {
-                      "https://github.com/ItsMeSunnyMunda/Video-Player-Pro/releases/latest"
-                    }).toUri()
-                  )
-                )
-                // updateViewModel.installUpdate(release) // Kept in code but disabled for now
-              },
-              onIgnore = { updateViewModel.ignoreVersion(release.tagName.removePrefix("v")) }
-            )
-          }
-          else -> {}
-        }
-      }
-
-      // Companion (REX-Ytdlp APK) update dialog — only when addon is installed.
-      // Guarded so an active app-update dialog always wins; companion shows after it's dismissed.
-      if (BuildConfig.ENABLE_UPDATE_FEATURE && updateViewModel != null &&
-          updateState !is UpdateViewModel.UpdateState.Available &&
-          updateState !is UpdateViewModel.UpdateState.ReadyToInstall) {
-        when (companionUpdateState) {
-          is UpdateViewModel.UpdateState.Available -> {
-            val release = (companionUpdateState as UpdateViewModel.UpdateState.Available).release
-            UpdateDialog(
-              release = release,
-              isDownloading = false,
-              progress = 0f,
-              actionLabel = "Download",
-              currentVersion = updateViewModel.ytdlpInstalledVersion() ?: "",
-              titleOverride = "REX-Ytdlp Update Available",
-              onDismiss = { updateViewModel.dismissCompanionNoUpdate() },
-              onAction = {
-                context.startActivity(
-                  Intent(
-                    Intent.ACTION_VIEW,
-                    (release.htmlUrl ?: "https://github.com/mpvRex/REX-Ytdlp/releases/latest").toUri()
-                  )
-                )
-              },
-              onIgnore = { updateViewModel.ignoreYtdlpVersion(release.tagName.removePrefix("v")) }
-            )
-          }
-          else -> {}
-        }
       }
     }
   }
