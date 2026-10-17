@@ -34,9 +34,6 @@ import org.koin.core.annotation.KoinExperimentalAPI
 @OptIn(KoinExperimentalAPI::class, kotlinx.coroutines.FlowPreview::class)
 class App : Application() {
   private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-  private val metadataCache: VideoMetadataCacheRepository by inject()
-  private val hybridMediaIndex: HybridMediaIndexRepository by inject()
-  private val advancedPreferences: xyz.mpv.rex.preferences.AdvancedPreferences by inject()
   private val mediaStoreInvalidations = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
   private val rootInvalidations = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
 
@@ -60,36 +57,49 @@ class App : Application() {
 
     Thread.setDefaultUncaughtExceptionHandler(GlobalExceptionHandler(applicationContext, CrashActivity::class.java))
 
-    FastThumbnails.initialize(this)
-
-    // Sync MediaInfoActivity status with user preference
-    advancedPreferences.syncMediaInfoActivityStatus(this)
-
-    registerHybridIndexObservers()
-
-    applicationScope.launch {
-      kotlinx.coroutines.delay(3_000)
-      runCatching { hybridMediaIndex.ensureFresh() }
+    // Asynchronously initialize heavy native JNI and IPC operations off the main startup thread
+    applicationScope.launch(Dispatchers.IO) {
+      runCatching { FastThumbnails.initialize(this@App) }
+      runCatching {
+        val advancedPrefs = org.koin.core.context.GlobalContext.get().get<xyz.mpv.rex.preferences.AdvancedPreferences>()
+        advancedPrefs.syncMediaInfoActivityStatus(this@App)
+      }
+      runCatching { registerHybridIndexObservers() }
     }
-    applicationScope.launch {
+
+    applicationScope.launch(Dispatchers.IO) {
+      kotlinx.coroutines.delay(4_000)
+      runCatching {
+        val hybridIndex = org.koin.core.context.GlobalContext.get().get<HybridMediaIndexRepository>()
+        hybridIndex.ensureFresh()
+      }
+    }
+    applicationScope.launch(Dispatchers.IO) {
       mediaStoreInvalidations
-        .debounce(1_000)
+        .debounce(1_500)
         .collect {
-          runCatching { hybridMediaIndex.refreshMediaStore() }
+          runCatching {
+            val hybridIndex = org.koin.core.context.GlobalContext.get().get<HybridMediaIndexRepository>()
+            hybridIndex.refreshMediaStore()
+          }
         }
     }
-    applicationScope.launch {
+    applicationScope.launch(Dispatchers.IO) {
       rootInvalidations
-        .debounce(1_000)
+        .debounce(1_500)
         .collect {
-          runCatching { hybridMediaIndex.ensureFresh(force = true) }
+          runCatching {
+            val hybridIndex = org.koin.core.context.GlobalContext.get().get<HybridMediaIndexRepository>()
+            hybridIndex.ensureFresh(force = true)
+          }
         }
     }
 
     // Perform cache maintenance after app startup settles
-    applicationScope.launch {
-      kotlinx.coroutines.delay(5_000)
+    applicationScope.launch(Dispatchers.IO) {
+      kotlinx.coroutines.delay(8_000)
       runCatching {
+        val metadataCache = org.koin.core.context.GlobalContext.get().get<VideoMetadataCacheRepository>()
         metadataCache.performMaintenance()
       }
     }

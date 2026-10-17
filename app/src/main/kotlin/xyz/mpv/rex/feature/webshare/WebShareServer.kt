@@ -228,7 +228,7 @@ class WebShareServer(
   private fun handleUpload(session: IHTTPSession): Response {
     return try {
       val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-      val rexPlayerDir = File(downloadsDir, "Video Player Pro")
+      val rexPlayerDir = File(downloadsDir, "Video Player")
       if (!rexPlayerDir.exists()) {
         rexPlayerDir.mkdirs()
       }

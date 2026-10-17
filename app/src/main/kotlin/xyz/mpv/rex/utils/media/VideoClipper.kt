@@ -252,7 +252,7 @@ object VideoClipper {
         mode: ClipMode = ClipMode.FAST_COPY
     ): File {
         val moviesDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES)
-        val clipsDir = File(moviesDir, "Video Player Pro")
+        val clipsDir = File(moviesDir, "Video Player")
         if (!clipsDir.exists()) {
             clipsDir.mkdirs()
         }

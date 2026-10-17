@@ -16,7 +16,7 @@ object WebShareHtmlTemplate {
   fun renderHtml(
     files: List<SharedFileItem>,
     token: String? = null,
-    serverTitle: String = "Video Player Pro Web Share",
+    serverTitle: String = "Video Player Web Share",
   ): String {
     val totalSize = files.sumOf { it.size }
     val totalSizeFormatted = formatFileSize(totalSize)
@@ -477,7 +477,7 @@ object WebShareHtmlTemplate {
                 <circle cx="12" cy="12" r="10"></circle>
                 <polygon points="10 8 16 12 10 16 10 8"></polygon>
               </svg>
-              Video Player Pro Share
+              Video Player Share
             </div>
             <h1 class="title">Shared Files</h1>
             <p class="subtitle">$fileCount ${if (multipleFiles) "files" else "file"} • $totalSizeFormatted total</p>
@@ -495,7 +495,7 @@ object WebShareHtmlTemplate {
                 </svg>
               </div>
               <div class="upload-text">
-                <div class="upload-title">Send Files to Video Player Pro</div>
+                <div class="upload-title">Send Files to Video Player</div>
                 <div class="upload-desc">Tap to browse or drop files to send</div>
               </div>
             </div>

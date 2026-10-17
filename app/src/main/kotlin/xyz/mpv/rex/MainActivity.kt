@@ -89,20 +89,13 @@ class MainActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     
+    enableEdgeToEdge()
     PermissionUtils.setMediaAccessLauncher(mediaAccessLauncher)
+    if (!appearancePreferences.onboardingCompleted.get()) {
+      appearancePreferences.onboardingCompleted.set(true)
+    }
 
     setContent {
-      // Set up theme and edge-to-edge display
-      val dark by appearancePreferences.darkMode.collectAsState()
-      val isSystemInDarkTheme = isSystemInDarkTheme()
-      val isDarkMode = dark == DarkMode.Dark || (dark == DarkMode.System && isSystemInDarkTheme)
-      enableEdgeToEdge(
-        SystemBarStyle.auto(
-          lightScrim = Color.White.toArgb(),
-          darkScrim = Color.Transparent.toArgb(),
-        ) { isDarkMode },
-      )
-
       MpvexTheme {
         Surface {
           Navigator()
@@ -125,15 +118,7 @@ class MainActivity : ComponentActivity() {
   @Composable
   fun Navigator() {
     val context = LocalContext.current
-    val hasCompletedOnboarding = appearancePreferences.onboardingCompleted.get()
-    val initialScreen = remember {
-      if (hasCompletedOnboarding) {
-        MainScreen
-      } else {
-        WelcomeScreen
-      }
-    }
-    val backstack = rememberNavBackStack(initialScreen)
+    val backstack = rememberNavBackStack(MainScreen)
 
     @Suppress("UNCHECKED_CAST")
     val typedBackstack = backstack as NavBackStack<Screen>
