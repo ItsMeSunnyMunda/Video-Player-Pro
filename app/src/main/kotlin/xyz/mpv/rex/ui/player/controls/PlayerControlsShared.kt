@@ -87,6 +87,7 @@ import xyz.mpv.rex.preferences.preference.collectAsState
 import xyz.mpv.rex.ui.player.Panels
 import xyz.mpv.rex.ui.player.PlayerActivity
 import xyz.mpv.rex.ui.player.PlayerViewModel
+import xyz.mpv.rex.ui.player.PlayerUpdates
 import xyz.mpv.rex.ui.player.Sheets
 import xyz.mpv.rex.ui.player.VideoAspect
 import xyz.mpv.rex.ui.player.controls.components.sheets.toFixed
@@ -180,27 +181,12 @@ fun RenderPlayerButton(
     }
 
     PlayerButton.VIDEO_TITLE -> {
-      val playlistModeEnabled = viewModel.hasPlaylistSupport()
-
-      val titleInteractionSource = remember { MutableInteractionSource() }
-
       if (inDock) {
         Box(
           modifier =
             Modifier
               .height(buttonSize)
               .clip(itemShape)
-              .clickable(
-                interactionSource = titleInteractionSource,
-                indication = ripple(
-                  bounded = true,
-                ),
-                enabled = playlistModeEnabled,
-                onClick = {
-                  clickEvent()
-                  onOpenSheet(Sheets.Playlist)
-                },
-              )
               .padding(horizontal = 8.dp),
           contentAlignment = Alignment.CenterStart,
         ) {
@@ -236,18 +222,7 @@ fun RenderPlayerButton(
           modifier =
             Modifier
               .height(buttonSize)
-              .clip(itemShape)
-              .clickable(
-                interactionSource = titleInteractionSource,
-                indication = ripple(
-                  bounded = true,
-                ),
-                enabled = playlistModeEnabled,
-                onClick = {
-                  clickEvent()
-                  onOpenSheet(Sheets.Playlist)
-                },
-              ),
+              .clip(itemShape),
         ) {
           Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -470,54 +445,77 @@ fun RenderPlayerButton(
 
     PlayerButton.SCREEN_ROTATION -> {}
 
-    PlayerButton.FRAME_NAVIGATION -> {
-      val isExpanded by viewModel.isFrameNavigationExpanded.collectAsState()
-      val isActive = isExpanded
-
-      if (isMoreSheet) {
-          Surface(
-            shape = itemShape,
-            color = if (isActive) activeSurfaceColor else surfaceColor,
-            contentColor = if (isActive) activeContentColor else contentColor,
-            border = if (isActive) activeBorderColor else borderColor,
-            modifier = Modifier
-              .height(buttonSize)
-              .clip(itemShape)
-              .clickable {
-                viewModel.toggleFrameNavigationExpanded()
-                onOpenSheet(Sheets.None)
-              }
-          ) {
-            Row(
-              verticalAlignment = Alignment.CenterVertically,
-              horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
-              modifier = Modifier.padding(horizontal = MaterialTheme.spacing.smaller)
-            ) {
-              Icon(
-                imageVector = Icons.Default.Camera,
-                contentDescription = null,
-                modifier = Modifier.size(24.dp)
-              )
-              Text(
-                text = stringResource(R.string.frame_nav),
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = 1,
-              )
-            }
-          }
-      } else {
-        ControlsButton(
-          icon = Icons.Default.Camera,
-          onClick = viewModel::toggleFrameNavigationExpanded,
-          isActive = isActive,
-          modifier = Modifier.size(buttonSize),
-        )
-      }
-    }
+    PlayerButton.FRAME_NAVIGATION -> {}
 
     PlayerButton.PICTURE_IN_PICTURE -> {}
 
-    PlayerButton.ASPECT_RATIO -> {}
+    PlayerButton.ASPECT_RATIO -> {
+      val isZoomed = kotlin.math.abs(currentZoom) >= 0.005f
+      @OptIn(ExperimentalFoundationApi::class)
+      Surface(
+        shape = itemShape,
+        color = if (isZoomed) activeSurfaceColor else surfaceColor,
+        contentColor = if (isZoomed && !hideBackground) activeContentColor else contentColor,
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
+        border = if (isZoomed) activeBorderColor else borderColor,
+        modifier = Modifier
+          .height(buttonSize)
+          .animateContentSize()
+          .clip(itemShape)
+          .combinedClickable(
+            interactionSource = remember { MutableInteractionSource() },
+            indication = ripple(bounded = true),
+            onClick = {
+              clickEvent()
+              // If video is zoomed, clicking aspect ratio directly resets zoom back to 100%
+              if (isZoomed) {
+                viewModel.setVideoZoom(0f)
+                viewModel.setVideoPan(0f, 0f)
+                viewModel.playerUpdate.value = PlayerUpdates.ShowText("Zoom reset to 100%")
+              } else {
+                // Cycle aspect ratio: Fit -> Crop -> Stretch -> Fit
+                val nextAspect = when (aspect) {
+                  VideoAspect.Fit -> VideoAspect.Crop
+                  VideoAspect.Crop -> VideoAspect.Stretch
+                  VideoAspect.Stretch -> VideoAspect.Fit
+                }
+                viewModel.changeVideoAspect(nextAspect, resetZoomAndPan = true)
+              }
+            },
+            onLongClick = {
+              clickEvent()
+              onOpenSheet(Sheets.AspectRatios)
+            },
+          ),
+      ) {
+        Box(contentAlignment = Alignment.Center) {
+          Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
+            modifier = Modifier.padding(
+              horizontal = MaterialTheme.spacing.smaller,
+              vertical = MaterialTheme.spacing.smaller,
+            ),
+          ) {
+            Icon(
+              imageVector = Icons.Filled.AspectRatio,
+              contentDescription = stringResource(R.string.btn_label_aspect),
+              tint = if (isZoomed && !hideBackground) activeContentColor else contentColor,
+              modifier = Modifier.size(24.dp),
+            )
+            if (isMoreSheet) {
+              Text(
+                text = stringResource(aspect.titleRes),
+                maxLines = 1,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(start = 4.dp),
+              )
+            }
+          }
+        }
+      }
+    }
 
     PlayerButton.VIDEO_ZOOM -> {
       val isZoomed = kotlin.math.abs(currentZoom) >= 0.005f
@@ -711,16 +709,7 @@ fun RenderPlayerButton(
     }
 
     PlayerButton.MORE_OPTIONS -> {
-      if (isMoreSheet) {
-          // Hide more options inside more options sheet
-      } else {
-          ControlsButton(
-            Icons.Default.MoreVert,
-            onClick = { onOpenSheet(Sheets.More) },
-            onLongClick = { onOpenPanel(Panels.VideoFilters) },
-            modifier = Modifier.size(buttonSize),
-          )
-      }
+      // Three-dot menu removed
     }
 
     PlayerButton.CURRENT_CHAPTER -> {
@@ -1008,219 +997,15 @@ fun RenderPlayerButton(
       }
     }
 
-    PlayerButton.AB_LOOP -> {
-      val isExpanded by viewModel.isABLoopExpanded.collectAsState()
-      val loopA by viewModel.abLoopA.collectAsState()
-      val loopB by viewModel.abLoopB.collectAsState()
-      val isActive = loopA != null || loopB != null || isExpanded
-
-      if (isMoreSheet) {
-          Surface(
-            shape = itemShape,
-            color = if (isActive) activeSurfaceColor else surfaceColor,
-            contentColor = if (isActive) activeContentColor else contentColor,
-            border = if (isActive) activeBorderColor else borderColor,
-            modifier = Modifier
-              .height(buttonSize)
-              .clip(itemShape)
-              .clickable {
-                viewModel.toggleABLoopExpanded()
-                onOpenSheet(Sheets.None)
-              }
-          ) {
-            Row(
-              verticalAlignment = Alignment.CenterVertically,
-              horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
-              modifier = Modifier.padding(horizontal = MaterialTheme.spacing.smaller)
-            ) {
-              Text(
-                text = stringResource(R.string.ab_loop_short),
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-              )
-              Text(
-                text = stringResource(R.string.loop),
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = 1,
-              )
-            }
-          }
-      } else {
-        Surface(
-          shape = itemShape,
-          color = if (isActive) activeSurfaceColor else surfaceColor,
-          border = if (isActive) activeBorderColor else borderColor,
-          modifier = Modifier
-            .size(buttonSize)
-            .clip(itemShape)
-            .clickable(onClick = viewModel::toggleABLoopExpanded),
-        ) {
-          Box(contentAlignment = Alignment.Center) {
-            Text(
-              text = stringResource(R.string.ab_loop_short),
-              style = MaterialTheme.typography.labelLarge,
-              fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-              color = if (isActive && !hideBackground) activeContentColor else contentColor,
-            )
-            if (hideBackground && isActive) {
-              Box(
-                modifier = Modifier
-                  .align(Alignment.BottomCenter)
-                  .padding(bottom = 3.dp)
-                  .size(width = 12.dp, height = 2.dp)
-                  .clip(androidx.compose.foundation.shape.CircleShape)
-                  .background(contentColor),
-              )
-            }
-          }
-        }
-      }
-    }
+    PlayerButton.AB_LOOP -> {}
 
     PlayerButton.BACKGROUND_PLAYBACK -> {}
 
-    PlayerButton.AMBIENT_MODE -> {
-        val isAmbientEnabled by viewModel.isAmbientEnabled.collectAsState()
-        
-        if (isMoreSheet) {
-            Surface(
-              shape = itemShape,
-              color = if (isAmbientEnabled) activeSurfaceColor else surfaceColor,
-              contentColor = if (isAmbientEnabled) activeContentColor else contentColor,
-              border = if (isAmbientEnabled) activeBorderColor else borderColor,
-              modifier = Modifier
-                .height(buttonSize)
-                .clip(itemShape)
-                .clickable { viewModel.toggleAmbientMode() }
-            ) {
-              Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
-                modifier = Modifier.padding(horizontal = MaterialTheme.spacing.smaller)
-              ) {
-                Icon(
-                  imageVector = if (isAmbientEnabled) Icons.Filled.BlurOn else Icons.Outlined.BlurOn,
-                  contentDescription = null,
-                  modifier = Modifier.size(24.dp)
-                )
-                Text(
-                  text = stringResource(R.string.ambient),
-                  style = MaterialTheme.typography.bodyMedium,
-                  maxLines = 1,
-                )
-              }
-            }
-        } else {
-            ControlsButton(
-              icon = if (isAmbientEnabled) Icons.Filled.BlurOn else Icons.Outlined.BlurOn,
-              title = stringResource(R.string.ambience_mode),
-              onClick = {
-                clickEvent()
-                viewModel.toggleAmbientMode()
-              },
-              isActive = isAmbientEnabled,
-              modifier = Modifier.size(buttonSize),
-            )
-        }
-    }
+    PlayerButton.AMBIENT_MODE -> {}
 
-    PlayerButton.SLEEP_TIMER -> {
-      val remainingTime by viewModel.remainingTime.collectAsState()
-      val isActive = remainingTime > 0
+    PlayerButton.SLEEP_TIMER -> {}
 
-      if (isMoreSheet) {
-          Surface(
-            shape = itemShape,
-            color = if (isActive) activeSurfaceColor else surfaceColor,
-            contentColor = if (isActive) activeContentColor else contentColor,
-            border = if (isActive) activeBorderColor else borderColor,
-            modifier = Modifier
-              .height(buttonSize)
-              .clip(itemShape)
-              .clickable {
-                onOpenSheet(Sheets.SleepTimer)
-              }
-          ) {
-            Row(
-              verticalAlignment = Alignment.CenterVertically,
-              horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
-              modifier = Modifier.padding(horizontal = MaterialTheme.spacing.smaller)
-            ) {
-              Icon(
-                imageVector = Icons.Outlined.Timer,
-                contentDescription = null,
-                modifier = Modifier.size(24.dp)
-              )
-              Text(
-                text = if (isActive) {
-                  android.text.format.DateUtils.formatElapsedTime(remainingTime.toLong())
-                } else {
-                  stringResource(R.string.sleep_timer)
-                },
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = 1,
-              )
-            }
-          }
-      } else {
-        ControlsButton(
-          icon = Icons.Outlined.Timer,
-          title = stringResource(R.string.sleep_timer),
-          onClick = { onOpenSheet(Sheets.SleepTimer) },
-          isActive = isActive,
-          modifier = Modifier.size(buttonSize),
-        )
-      }
-    }
-
-    PlayerButton.VIDEO_QUALITY -> {
-      val availableQualities by viewModel.availableVideoQualities.collectAsState()
-      val currentQuality by viewModel.currentVideoQuality.collectAsState()
-
-      if (availableQualities.size > 1) {
-        val label = currentQuality?.shortLabel ?: stringResource(R.string.video_quality_auto)
-        Surface(
-          shape = itemShape,
-          color = surfaceColor,
-          contentColor = contentColor,
-          tonalElevation = 0.dp,
-          shadowElevation = 0.dp,
-          border = borderColor,
-          modifier = Modifier
-            .height(buttonSize)
-            .clip(itemShape)
-            .clickable(
-              interactionSource = remember { MutableInteractionSource() },
-              indication = ripple(bounded = true),
-              onClick = {
-                clickEvent()
-                onOpenSheet(Sheets.VideoQuality)
-              },
-            ),
-        ) {
-          Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
-            modifier = Modifier.padding(
-              horizontal = MaterialTheme.spacing.small,
-              vertical = MaterialTheme.spacing.smaller,
-            ),
-          ) {
-            Icon(
-              imageVector = Icons.Outlined.HighQuality,
-              contentDescription = stringResource(R.string.video_quality),
-              modifier = Modifier.size(20.dp),
-            )
-            Text(
-              text = label,
-              maxLines = 1,
-              overflow = TextOverflow.Ellipsis,
-              style = MaterialTheme.typography.bodyMedium,
-            )
-          }
-        }
-      }
-    }
+    PlayerButton.VIDEO_QUALITY -> {}
 
     PlayerButton.NONE -> { /* Do nothing */
     }

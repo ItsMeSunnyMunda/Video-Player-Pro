@@ -41,6 +41,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 
+data class ControlsButtonStyle(
+  val hideBackground: Boolean = false,
+  val enableGlass: Boolean = false,
+  val matchTheme: Boolean = false,
+)
+
+val LocalControlsButtonStyle = staticCompositionLocalOf { ControlsButtonStyle() }
 val LocalInControlsDock = staticCompositionLocalOf { false }
 
 @Suppress("ModifierClickableOrder")
@@ -57,10 +64,10 @@ fun ControlsButton(
   isActive: Boolean = false,
 ) {
   val interactionSource = remember { MutableInteractionSource() }
-  val appearancePreferences = koinInject<AppearancePreferences>()
-  val hideBackground by appearancePreferences.hidePlayerButtonsBackground.collectAsState()
-  val enableGlass by appearancePreferences.enableGlassPlayerControls.collectAsState()
-  val matchTheme by appearancePreferences.matchPlayerControlsToTheme.collectAsState()
+  val style = LocalControlsButtonStyle.current
+  val hideBackground = style.hideBackground
+  val enableGlass = style.enableGlass
+  val matchTheme = style.matchTheme
   val inDock = LocalInControlsDock.current
   val clickEvent = LocalPlayerButtonsClickEvent.current
 

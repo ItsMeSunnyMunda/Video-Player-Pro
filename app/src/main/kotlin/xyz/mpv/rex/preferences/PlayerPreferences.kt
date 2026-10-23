@@ -29,9 +29,6 @@ class PlayerPreferences(
   val volumeGesture = preferenceStore.getBoolean("volume_brightness", true)
   val pinchToZoomGesture = preferenceStore.getBoolean("pinch_to_zoom_gesture", true)
   val horizontalSwipeToSeek = preferenceStore.getBoolean("horizontal_swipe_to_seek", true)
-  val swipeToSubtitleSeek = preferenceStore.getBoolean("swipe_to_subtitle_seek", true)
-  val moveSubtitleByDragging = preferenceStore.getBoolean("move_subtitle_by_dragging", true)
-  val pinchToResizeSubtitle = preferenceStore.getBoolean("pinch_to_resize_subtitle", true)
   val horizontalSwipeSensitivity = preferenceStore.getFloat("horizontal_swipe_sensitivity", 0.05f)
 
   val customAspectRatios = preferenceStore.getStringSet("custom_aspect_ratios", emptySet())
@@ -59,7 +56,7 @@ class PlayerPreferences(
   val rememberBrightness = preferenceStore.getBoolean("remember_brightness")
   val defaultBrightness = preferenceStore.getFloat("default_brightness", -1f)
 
-  val allowGesturesInPanels = preferenceStore.getBoolean("allow_gestures_in_panels")
+  val allowGesturesInPanels = preferenceStore.getBoolean("allow_gestures_in_panels", false)
   val showSystemStatusBar = preferenceStore.getBoolean("show_system_status_bar", true)
   val showSystemNavigationBar = preferenceStore.getBoolean("show_system_navigation_bar", false)
   val reduceMotion = preferenceStore.getBoolean("reduce_motion", true)
@@ -79,10 +76,6 @@ class PlayerPreferences(
 
   val playlistMode = preferenceStore.getBoolean("playlist_mode", true)
   val playlistViewMode = preferenceStore.getBoolean("playlist_view_mode_list", true) // true = list, false = grid
-
-  // When enabled, tapping a media item starts playback directly in the bottom mini player bar
-  // (headless, no full-screen player) instead of opening PlayerActivity.
-  val playInMiniPlayerDirectly = preferenceStore.getBoolean("play_in_mini_player_directly", false)
 
   val useWavySeekbar = preferenceStore.getBoolean("use_wavy_seekbar", true)
   val bottomControlsBelowSeekbar = preferenceStore.getBoolean("bottom_controls_below_seekbar", true)

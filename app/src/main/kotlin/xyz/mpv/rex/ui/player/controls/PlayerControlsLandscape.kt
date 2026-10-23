@@ -85,22 +85,11 @@ fun TopLeftPlayerControlsLandscape(
       )
     }
 
-    val titleInteractionSource = remember { MutableInteractionSource() }
-
     Box(
       modifier =
         Modifier
           .fillMaxHeight()
           .clip(RoundedCornerShape(14.dp))
-          .clickable(
-            interactionSource = titleInteractionSource,
-            indication = ripple(bounded = true),
-            enabled = playlistModeEnabled,
-            onClick = {
-              clickEvent()
-              onOpenSheet(Sheets.Playlist)
-            },
-          )
           .padding(horizontal = 8.dp),
       contentAlignment = Alignment.CenterStart,
     ) {

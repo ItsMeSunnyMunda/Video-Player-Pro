@@ -44,8 +44,6 @@ import androidx.compose.ui.unit.dp
 import org.koin.compose.koinInject
 import xyz.mpv.rex.R
 import xyz.mpv.rex.ui.browser.MainScreen
-import xyz.mpv.rex.ui.browser.miniplayer.MiniPlayerDefaults
-import xyz.mpv.rex.ui.browser.miniplayer.MiniPlayerStateManager
 import xyz.mpv.rex.ui.theme.pillShape
 import xyz.mpv.rex.ui.utils.LocalBackStack
 
@@ -70,15 +68,12 @@ fun BrowserBottomBar(
   showAddToPlaylist: Boolean = true,
   onMarkAsClick: (() -> Unit)? = null,
 ) {
-  val miniPlayerStateManager = koinInject<MiniPlayerStateManager>()
-  val miniPlayerState by miniPlayerStateManager.state.collectAsState()
   val backstack = LocalBackStack.current
   val isMainScreen = backstack.lastOrNull() == MainScreen
   val haptic = LocalHapticFeedback.current
 
   val navBarHeight = if (isMainScreen) 80.dp else 0.dp
-  val miniPlayerOffset = if (miniPlayerState.isPlaybackActive) MiniPlayerDefaults.TotalCompactOffset else 0.dp
-  val targetBottomPadding = navBarHeight + miniPlayerOffset + 16.dp
+  val targetBottomPadding = navBarHeight + 16.dp
 
   val animatedBottomPadding by animateDpAsState(
     targetValue = targetBottomPadding,

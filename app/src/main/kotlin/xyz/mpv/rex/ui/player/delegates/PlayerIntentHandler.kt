@@ -242,11 +242,7 @@ class PlayerIntentHandler(
       ?: (if (intent.action == Intent.ACTION_VIEW || intent.action == null) {
         FolderPlaylistOps.extractExternalPlaylist(intent)?.let { playlist ->
           playlist.items.getOrNull(playlist.initialIndex)?.let { firstUri ->
-            if (firstUri.scheme.equals("smb", ignoreCase = true)) {
-              firstUri.toString()
-            } else {
-              firstUri.resolveUri(activity) ?: firstUri.toString()
-            }
+            firstUri.resolveUri(activity) ?: firstUri.toString()
           }
         }
       } else null)
@@ -254,11 +250,6 @@ class PlayerIntentHandler(
 
     return when {
       uri.startsWith("content://") -> uri.toUri().openContentFd(activity)
-      uri.startsWith("smb://", ignoreCase = true) -> {
-        runBlocking(Dispatchers.IO) {
-          FolderPlaylistOps.resolveSmbUri(uri)?.url
-        } ?: uri
-      }
       else -> uri
     }
   }
@@ -532,8 +523,6 @@ class PlayerIntentHandler(
 
     // Load the new file
     getPlayableUri(intent)?.let { uriStr ->
-      activity.switchActiveNetworkStream(uriStr)
-
       val parsedUri = runCatching { Uri.parse(uriStr) }.getOrNull()
       val fastDurationMs = if (parsedUri != null) activity.getFastDurationMsForUri(parsedUri) else 0L
       val fastDurationSec = if (fastDurationMs > 0L) fastDurationMs / 1000f else null

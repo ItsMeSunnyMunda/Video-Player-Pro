@@ -35,22 +35,17 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import xyz.mpv.rex.R
-import xyz.mpv.rex.domain.thumbnail.ThumbnailRepository
 import xyz.mpv.rex.preferences.AdvancedPreferences
 import xyz.mpv.rex.preferences.SettingsManager
 import xyz.mpv.rex.presentation.Screen
-import xyz.mpv.rex.presentation.components.ConfirmDialog
 import xyz.mpv.rex.presentation.components.GroupPosition
 import xyz.mpv.rex.presentation.components.GroupedListColumn
 import xyz.mpv.rex.ui.utils.LocalBackStack
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import me.zhanghai.compose.preference.Preference
 import me.zhanghai.compose.preference.ProvidePreferenceLocals
 import org.koin.compose.koinInject
-import java.io.File
 
 @Serializable
 object AdvancedPreferencesScreen : Screen {
@@ -253,128 +248,6 @@ object AdvancedPreferencesScreen : Screen {
                   },
                   onClick = {
                     importLauncher.launch(arrayOf("text/xml", "application/xml", "*/*"))
-                  },
-                )
-              }
-            }
-          }
-
-          // Cache Section
-          item {
-            PreferenceSectionHeader(title = stringResource(R.string.pref_advanced_section_cache))
-          }
-
-          item {
-            var isClearThumbsConfirmShown by remember { mutableStateOf(false) }
-            val thumbnailRepository = koinInject<ThumbnailRepository>()
-
-            GroupedListColumn {
-              GroupedPreferenceCard(
-                position = GroupPosition.FIRST,
-                highlightKey = R.string.pref_clear_config_cache_title,
-              ) {
-                Preference(
-                  title = { Text(text = stringResource(R.string.pref_clear_config_cache_title)) },
-                  summary = {
-                    Text(
-                      text = stringResource(R.string.pref_clear_config_cache_summary),
-                      color = MaterialTheme.colorScheme.outline,
-                    )
-                  },
-                  onClick = {
-                    scope.launch(Dispatchers.IO) {
-                      val mpvConfFile = File(context.filesDir, "mpv.conf")
-                      mpvConfFile.delete()
-                      preferences.mpvConf.delete()
-                      withContext(Dispatchers.Main) {
-                        Toast.makeText(
-                          context,
-                          context.getString(R.string.pref_advanced_config_cache_cleared),
-                          Toast.LENGTH_SHORT,
-                        ).show()
-                      }
-                    }
-                  },
-                )
-              }
-
-              GroupedPreferenceCard(
-                position = GroupPosition.MIDDLE,
-                highlightKey = R.string.pref_clear_thumbnail_cache_title,
-              ) {
-                Column {
-                  Preference(
-                    title = { Text(text = stringResource(R.string.pref_clear_thumbnail_cache_title)) },
-                    summary = {
-                      Text(
-                        text = stringResource(R.string.pref_advanced_delete_thumbnails_summary),
-                        color = MaterialTheme.colorScheme.outline,
-                      )
-                    },
-                    onClick = { isClearThumbsConfirmShown = true },
-                  )
-
-                  if (isClearThumbsConfirmShown) {
-                    ConfirmDialog(
-                      title = stringResource(R.string.pref_advanced_clear_thumbnail_cache_confirm_title),
-                      subtitle = stringResource(R.string.pref_advanced_clear_thumbnail_cache_confirm_subtitle),
-                      onConfirm = {
-                        scope.launch(Dispatchers.IO) {
-                          runCatching {
-                            thumbnailRepository.clearThumbnailCache()
-                          }.onSuccess {
-                            withContext(Dispatchers.Main) {
-                              isClearThumbsConfirmShown = false
-                              Toast.makeText(context, context.getString(R.string.pref_advanced_thumbnail_cache_cleared), Toast.LENGTH_SHORT).show()
-                            }
-                          }.onFailure { error ->
-                            withContext(Dispatchers.Main) {
-                              isClearThumbsConfirmShown = false
-                              Toast.makeText(context, context.getString(R.string.clear_failed, error.message), Toast.LENGTH_LONG).show()
-                            }
-                          }
-                        }
-                      },
-                      onCancel = { isClearThumbsConfirmShown = false },
-                    )
-                  }
-                }
-              }
-
-              GroupedPreferenceCard(
-                position = GroupPosition.LAST,
-                highlightKey = R.string.pref_advanced_clear_fonts_cache,
-              ) {
-                Preference(
-                  title = { Text(text = stringResource(id = R.string.pref_advanced_clear_fonts_cache)) },
-                  summary = {
-                    Text(
-                      text = stringResource(R.string.pref_advanced_remove_cached_fonts_summary),
-                      color = MaterialTheme.colorScheme.outline,
-                    )
-                  },
-                  onClick = {
-                    scope.launch(Dispatchers.IO) {
-                      val fontsDir = File(context.filesDir.path + "/fonts")
-                      if (fontsDir.exists()) {
-                        fontsDir.listFiles()?.forEach { file ->
-                          if (file.isFile &&
-                            file.name
-                              .lowercase()
-                              .matches(".*\\.[ot]tf$".toRegex())
-                          ) {
-                            file.delete()
-                          }
-                        }
-                      }
-                      withContext(Dispatchers.Main) {
-                        Toast.makeText(
-                          context,
-                          context.getString(R.string.pref_advanced_cleared_fonts_cache),
-                          Toast.LENGTH_SHORT,
-                        ).show()
-                      }
-                    }
                   },
                 )
               }

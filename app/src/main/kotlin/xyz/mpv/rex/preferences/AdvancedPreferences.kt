@@ -15,7 +15,6 @@ class AdvancedPreferences(
 
   val verboseLogging = preferenceStore.getBoolean("verbose_logging", false)
 
-  val enabledStatisticsPage = preferenceStore.getInt("enabled_stats_page", 0)
 
   val enableRecentlyPlayed = preferenceStore.getBoolean("enable_recently_played", true)
   val autoRemoveDeletedFromHistory = preferenceStore.getBoolean("auto_remove_deleted_from_history", false)

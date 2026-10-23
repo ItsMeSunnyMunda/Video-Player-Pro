@@ -33,6 +33,11 @@ import org.koin.core.annotation.KoinExperimentalAPI
 
 @OptIn(KoinExperimentalAPI::class, kotlinx.coroutines.FlowPreview::class)
 class App : Application() {
+  companion object {
+    lateinit var instance: App
+      private set
+  }
+
   private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
   private val mediaStoreInvalidations = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
   private val rootInvalidations = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
@@ -43,6 +48,7 @@ class App : Application() {
 
   override fun onCreate() {
     super.onCreate()
+    instance = this
 
     // Initialize Koin
     startKoin {
@@ -60,6 +66,7 @@ class App : Application() {
     // Asynchronously initialize heavy native JNI and IPC operations off the main startup thread
     applicationScope.launch(Dispatchers.IO) {
       runCatching { FastThumbnails.initialize(this@App) }
+      runCatching { xyz.mpv.rex.ui.player.MpvConfigSync.prepare(this@App) }
       runCatching {
         val advancedPrefs = org.koin.core.context.GlobalContext.get().get<xyz.mpv.rex.preferences.AdvancedPreferences>()
         advancedPrefs.syncMediaInfoActivityStatus(this@App)

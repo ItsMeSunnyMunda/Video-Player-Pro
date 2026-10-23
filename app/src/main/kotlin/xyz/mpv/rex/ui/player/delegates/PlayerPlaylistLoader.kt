@@ -10,7 +10,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import xyz.mpv.rex.R
-import xyz.mpv.rex.ui.browser.networkstreaming.proxy.NetworkStreamingProxy
 import xyz.mpv.rex.ui.player.MediaPlaybackService
 import xyz.mpv.rex.ui.player.PlayerActivity
 import xyz.mpv.rex.ui.player.PlayerActivity.Companion.TAG
@@ -28,14 +27,7 @@ import xyz.mpv.rex.utils.media.M3UParser
 class PlayerPlaylistLoader(
   private val activity: PlayerActivity,
 ) {
-  var activeNetworkStreamId: String? = null
   var isAutoplayNextTriggered: Boolean = false
-
-  /**
-   * Bumped on every SMB playlist navigation so a resolve that finishes late, after the user has
-   * already pressed Next again, is discarded instead of loading on top of the newer one.
-   */
-  private var smbResolveToken = 0
 
   /**
    * Check if there's a next video in the playlist
@@ -146,48 +138,7 @@ class PlayerPlaylistLoader(
     }
 
     val uri = playlist[index]
-    if (uri.scheme.equals("smb", ignoreCase = true)) {
-      val token = ++smbResolveToken
-      activity.lifecycleScope.launch {
-        val stream = withContext(Dispatchers.IO) {
-          runCatching { FolderPlaylistOps.resolveSmbUri(uri.toString()) }
-            .onFailure { Log.w(TAG, "Could not resolve the next network playlist item", it) }
-            .getOrNull()
-        }
-        if (token != smbResolveToken) {
-          stream?.streamId?.takeIf { it.isNotEmpty() }?.let { streamId ->
-            activity.lifecycleScope.launch(Dispatchers.IO) {
-              NetworkStreamingProxy.getInstance().unregisterStream(streamId)
-            }
-          }
-          return@launch
-        }
-        if (stream == null) {
-          activity.viewModel.showToast(activity.getString(R.string.network_share_unreachable))
-          return@launch
-        }
-        loadResolvedPlaylistItem(
-          index = index,
-          uri = uri,
-          playableUri = stream.url,
-          mediaIdentifierOverride = "network_${stream.connectionId}_${stream.filePath.hashCode()}",
-        )
-      }
-      return
-    }
-
     loadResolvedPlaylistItem(index, uri, uri.resolveUri(activity) ?: uri.toString())
-  }
-
-  fun switchActiveNetworkStream(playableUri: String?) {
-    val newStreamId = NetworkStreamingProxy.getInstance().extractStreamId(playableUri)
-    val oldStreamId = activeNetworkStreamId
-    if (oldStreamId != null && oldStreamId != newStreamId) {
-      activity.lifecycleScope.launch(Dispatchers.IO) {
-        NetworkStreamingProxy.getInstance().unregisterStream(oldStreamId)
-      }
-    }
-    activeNetworkStreamId = newStreamId
   }
 
   /**
@@ -204,8 +155,6 @@ class PlayerPlaylistLoader(
     if (activity.fileName.isNotBlank()) {
       activity.saveVideoPlaybackState(activity.fileName)
     }
-
-    switchActiveNetworkStream(playableUri)
 
     // Update index in manager
     activity.viewModel.playlistManager.updateIndex(index)
@@ -480,13 +429,7 @@ class PlayerPlaylistLoader(
           } else if (!activity.playerPreferences.autoplayOnOpen.get() || activity.playerPreferences.savePositionOnQuit.get() || activity.playerPreferences.resumePlaybackMode.get() != ResumePlaybackMode.Never) {
             runCatching { MPVLib.setPropertyBoolean("pause", true) }
           }
-          if (activity.mpvInitialized) {
-            activity.lifecycleScope.launch(Dispatchers.Default) {
-              MPVLib.command("loadfile", uriStr)
-            }
-          } else {
-            activity.player.playFile(uriStr)
-          }
+          activity.playDirectMedia(uriStr)
         }
       }
     }
@@ -511,25 +454,9 @@ class PlayerPlaylistLoader(
    * Generate a unique identifier for this media for playback state/history.
    *
    * For local/offline files, uses fileName (display name or path).
-   * For network streams via proxy (SMB/WebDAV/FTP), uses the stable network file path from intent extras.
-   * For other network URIs (http/https/rtmp/etc.), uses a hash of the URI string to distinguish different streams.
+   * For network URIs (http/https/rtmp/etc.), uses a hash of the URI string to distinguish different streams.
    */
   fun getMediaIdentifier(intent: Intent, fileName: String): String {
-    // Check if this is a network file played via proxy (SMB/WebDAV/FTP)
-    // Use the stable network file path instead of the temporary proxy URL
-    val networkFilePath = intent.getStringExtra("network_file_path")
-    val networkConnectionId = intent.getLongExtra("network_connection_id", -1L)
-
-    if (networkFilePath != null && networkConnectionId != -1L) {
-      // For network files via proxy: use connection ID + file path for stable identifier
-      val identifier = "network_${networkConnectionId}_${networkFilePath.hashCode()}"
-      Log.d(
-        TAG,
-        "Using network file identifier: $identifier (connection: $networkConnectionId, path: $networkFilePath)",
-      )
-      return identifier
-    }
-
     val uri = activity.extractUriFromIntent(intent)
     return if (uri != null) getMediaIdentifierFromUri(uri, fileName) else fileName
   }
@@ -541,7 +468,7 @@ class PlayerPlaylistLoader(
    * For network URIs (http/https/rtmp/etc.), uses a hash of the URI string to distinguish different streams.
    */
   fun getMediaIdentifierFromUri(uri: Uri, fileName: String): String {
-    return if (uri.scheme?.startsWith("http") == true || uri.scheme == "rtmp" || uri.scheme == "ftp" || uri.scheme == "rtsp" || uri.scheme == "mms" || uri.scheme.equals("smb", ignoreCase = true)) {
+    return if (uri.scheme?.startsWith("http") == true || uri.scheme == "rtmp" || uri.scheme == "rtsp" || uri.scheme == "mms") {
       "${fileName}_${uri.toString().hashCode()}"
     } else {
       fileName
@@ -571,58 +498,12 @@ class PlayerPlaylistLoader(
     }
   }
 
-  /**
-   * Picks the sibling source that matches how this file was launched.
-   *
-   * SMB is checked first because for those launches [parsePathFromIntent] yields a local proxy URL,
-   * which has no folder to scan: our own browser passes the share-relative path plus the connection
-   * it came from, and external file managers that proxy SMB themselves (MiXplorer) put the real
-   * location in a `real_path` extra. Without either, nothing changes for local/content launches.
-   */
   fun autoGeneratePlaylist(intent: Intent) {
-    val networkFilePath = intent.getStringExtra("network_file_path")
-    val networkConnectionId = intent.getLongExtra("network_connection_id", -1L)
-    val smbUri = intent.dataString?.takeIf { it.startsWith("smb://", ignoreCase = true) }
-      ?: intent.getStringExtra("real_path")?.takeIf { it.startsWith("smb://", ignoreCase = true) }
-
-    when {
-      networkFilePath != null && networkConnectionId != -1L ->
-        generatePlaylistFromNetworkFolder {
-          FolderPlaylistOps.generateNetworkFolderPlaylist(networkConnectionId, networkFilePath)
-        }
-
-      smbUri != null ->
-        generatePlaylistFromNetworkFolder { FolderPlaylistOps.generateNetworkFolderPlaylist(smbUri) }
-
-      else -> {
-        val path = activity.parsePathFromIntent(intent) ?: return
-        if (intent.getStringExtra("launch_source") == "media_library_list") {
-          generatePlaylistFromMediaLibrary(path)
-        } else {
-          generatePlaylistFromFolder(path)
-        }
-      }
-    }
-  }
-
-  /**
-   * Builds a playlist by listing a remote folder. A share we cannot list means no playlist — the
-   * user asked to watch a file, not to build a playlist, so playback is left alone and it is only
-   * logged.
-   */
-  private fun generatePlaylistFromNetworkFolder(generate: suspend () -> Result<Pair<List<Uri>, Int>?>) {
-    activity.lifecycleScope.launch(Dispatchers.IO) {
-      val (newPlaylist, newIndex) = generate()
-        .getOrElse { e ->
-          Log.w(TAG, "Could not list the remote folder for an auto-playlist", e)
-          return@launch
-        } ?: return@launch
-
-      withContext(Dispatchers.Main) {
-        activity.viewModel.playlistManager.setPlaylist(items = newPlaylist, index = newIndex)
-        Log.d(TAG, "Auto-playlist generated from network folder: ${newPlaylist.size} items")
-        updateMiniPlayerPlaylistState()
-      }
+    val path = activity.parsePathFromIntent(intent) ?: return
+    if (intent.getStringExtra("launch_source") == "media_library_list") {
+      generatePlaylistFromMediaLibrary(path)
+    } else {
+      generatePlaylistFromFolder(path)
     }
   }
 

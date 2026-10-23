@@ -119,20 +119,7 @@ object PreferencesScreen : Screen {
             }
           }
 
-          // Media & Library Section
-          item {
-            PreferenceSection(title = stringResource(R.string.pref_media_library_title)) {
-              GroupedListColumn {
-                PreferenceItem(
-                  position = GroupPosition.ONLY,
-                  title = stringResource(R.string.pref_media_library_title),
-                  summary = stringResource(R.string.pref_media_library_summary),
-                  icon = Icons.Outlined.VideoLibrary,
-                  onClick = { backstack.add(MediaLibraryPreferencesScreen) },
-                )
-              }
-            }
-          }
+
 
 
 

@@ -93,14 +93,6 @@ object SearchablePreferences {
                 targetIndex = 5,
             ))
             add(SearchablePreference(
-                titleRes = R.string.pref_appearance_tab_shorts_title,
-                summaryRes = R.string.pref_appearance_tab_shorts_summary,
-                keywords = listOf("shorts", "tab", "navigation", "bottom bar", "rexshorts"),
-                category = "Appearance",
-                screen = AppearancePreferencesScreen,
-                targetIndex = 5,
-            ))
-            add(SearchablePreference(
                 titleRes = R.string.pref_appearance_tab_you_title,
                 summaryRes = R.string.pref_appearance_tab_you_summary,
                 keywords = listOf("you", "tab", "navigation", "bottom bar", "profile"),
@@ -912,14 +904,6 @@ object SearchablePreferences {
                 targetIndex = 1,
             ))
             add(SearchablePreference(
-                titleRes = R.string.pref_anime4k_title,
-                summaryRes = R.string.pref_anime4k_summary,
-                keywords = listOf("anime4k", "upscale", "shader", "anime", "upscale"),
-                category = "Decoder",
-                screen = DecoderPreferencesScreen,
-                targetIndex = 1,
-            ))
-            add(SearchablePreference(
                 title = "HDR-to-SDR Tone Mapping (hdr-toys)",
                 summary = "Apply high quality GLSL shaders for HDR-to-SDR conversion. Requires gpu-next.",
                 keywords = listOf("hdr", "sdr", "tone", "mapping", "hdr-toys", "shaders", "glsl", "color"),
@@ -934,145 +918,6 @@ object SearchablePreferences {
                 category = "Decoder",
                 screen = CodecInformationScreen,
                 targetIndex = 0,
-            ))
-
-            // Subtitle preferences
-            add(SearchablePreference(
-                titleRes = R.string.pref_subtitles,
-                summaryRes = R.string.pref_subtitles_summary,
-                keywords = listOf("subtitles", "subs", "language", "fonts", "text", "wyzie", "subdl"),
-                category = "Subtitles",
-                screen = SubtitlesPreferencesScreen,
-                targetIndex = 1,
-            ))
-            add(SearchablePreference(
-                titleRes = R.string.pref_preferred_languages,
-                keywords = listOf("language", "preferred", "subtitle", "audio", "locale", "code"),
-                category = "Subtitles",
-                screen = SubtitlesPreferencesScreen,
-                targetIndex = 1,
-            ))
-            add(SearchablePreference(
-                titleRes = R.string.pref_subtitles_disable_by_default_title,
-                summaryRes = R.string.pref_subtitles_disable_by_default_summary,
-                keywords = listOf("disable", "subtitles", "default", "subs", "off"),
-                category = "Subtitles",
-                screen = SubtitlesPreferencesScreen,
-                targetIndex = 1,
-            ))
-            add(SearchablePreference(
-                titleRes = R.string.pref_subtitles_autoload_title,
-                summaryRes = R.string.pref_subtitles_autoload_summary,
-                keywords = listOf("autoload", "automatic", "subtitles", "external", "load"),
-                category = "Subtitles",
-                screen = SubtitlesPreferencesScreen,
-                targetIndex = 1,
-            ))
-            add(SearchablePreference(
-                titleRes = R.string.player_sheets_sub_override_ass,
-                summaryRes = R.string.player_sheets_sub_override_ass_subtitle,
-                keywords = listOf("ass", "override", "subtitle", "ssa", "format", "style"),
-                category = "Subtitles",
-                screen = SubtitlesPreferencesScreen,
-                targetIndex = 1,
-            ))
-            add(SearchablePreference(
-                titleRes = R.string.player_sheets_sub_scale_by_window,
-                summaryRes = R.string.player_sheets_sub_scale_by_window_summary,
-                keywords = listOf("scale", "window", "subtitle", "size", "resize", "fit"),
-                category = "Subtitles",
-                screen = SubtitlesPreferencesScreen,
-                targetIndex = 1,
-            ))
-            add(SearchablePreference(
-                titleRes = R.string.pref_subtitles_force_ltr_title,
-                summaryRes = R.string.pref_subtitles_force_ltr_summary,
-                keywords = listOf("force", "ltr", "left", "right", "direction", "subtitles"),
-                category = "Subtitles",
-                screen = SubtitlesPreferencesScreen,
-                targetIndex = 1,
-            ))
-            add(SearchablePreference(
-                titleRes = R.string.pref_subtitles_encoding_title,
-                keywords = listOf("encoding", "charset", "utf-8", "subtitles", "codepage"),
-                category = "Subtitles",
-                screen = SubtitlesPreferencesScreen,
-                targetIndex = 1,
-            ))
-            add(SearchablePreference(
-                titleRes = R.string.pref_subtitles_open_at_video_location_title,
-                summaryRes = R.string.pref_subtitles_open_at_video_location_summary,
-                keywords = listOf("picker", "video", "location", "folder", "subtitles"),
-                category = "Subtitles",
-                screen = SubtitlesPreferencesScreen,
-                targetIndex = 1,
-            ))
-            add(SearchablePreference(
-                titleRes = R.string.pref_subtitles_custom_picker_folder_title,
-                keywords = listOf("custom", "folder", "picker", "directory", "subtitles"),
-                category = "Subtitles",
-                screen = SubtitlesPreferencesScreen,
-                targetIndex = 1,
-            ))
-            add(SearchablePreference(
-                titleRes = R.string.pref_subtitles_fonts_dir,
-                keywords = listOf("fonts", "directory", "subtitle", "custom", "folder"),
-                category = "Subtitles",
-                screen = SubtitlesPreferencesScreen,
-                targetIndex = 1,
-            ))
-            add(SearchablePreference(
-                titleRes = R.string.pref_subtitle_search_title,
-                summaryRes = R.string.pref_subtitle_search_summary,
-                keywords = listOf("subtitle", "search", "online", "download", "wyzie", "subdl", "subs"),
-                category = "Subtitles",
-                screen = SubtitlesPreferencesScreen,
-                targetIndex = 3,
-            ))
-            add(SearchablePreference(
-                titleRes = R.string.pref_subtitles_save_location,
-                keywords = listOf("save", "location", "download", "folder", "directory", "subtitles"),
-                category = "Subtitles",
-                screen = SubtitlesPreferencesScreen,
-                targetIndex = 3,
-            ))
-            add(SearchablePreference(
-                titleRes = R.string.pref_subtitles_subdl_languages,
-                keywords = listOf("languages", "subdl", "online", "search", "subtitles"),
-                category = "Subtitles",
-                screen = SubtitlesPreferencesScreen,
-                targetIndex = 3,
-            ))
-            add(SearchablePreference(
-                title = "Advanced Search Filters",
-                keywords = listOf("advanced", "filters", "subtitle", "search", "formats", "encodings", "hearing impaired"),
-                category = "Subtitles",
-                screen = SubtitlesPreferencesScreen,
-                targetIndex = 3,
-            ))
-            add(SearchablePreference(
-                title = "Hearing-impaired friendly",
-                summary = "Only show subtitles optimized for hearing impaired",
-                keywords = listOf("hearing", "impaired", "sdh", "accessibility", "subtitles", "deaf"),
-                category = "Subtitles",
-                screen = SubtitlesPreferencesScreen,
-                targetIndex = 3,
-            ))
-            add(SearchablePreference(
-                titleRes = R.string.pref_subtitles_clear_downloads,
-                summaryRes = R.string.pref_subtitles_clear_downloads_summary,
-                keywords = listOf("clear", "delete", "downloads", "remove", "subtitles"),
-                category = "Subtitles",
-                screen = SubtitlesPreferencesScreen,
-                targetIndex = 3,
-            ))
-            add(SearchablePreference(
-                titleRes = R.string.pref_subtitles_wyzie_api_key_title,
-                summaryRes = R.string.pref_subtitles_wyzie_api_key_summary,
-                keywords = listOf("api", "key", "token", "wyzie", "subtitles", "vip"),
-                category = "Subtitles",
-                screen = SubtitlesPreferencesScreen,
-                targetIndex = 3,
             ))
 
             // Audio preferences
@@ -1114,23 +959,8 @@ object SearchablePreferences {
                 screen = AudioPreferencesScreen,
                 targetIndex = 1,
             ))
-            add(SearchablePreference(
-                titleRes = R.string.pref_audio_volume_boost_cap,
-                keywords = listOf("volume", "boost", "cap", "maximum", "amplify"),
-                category = "Audio",
-                screen = AudioPreferencesScreen,
-                targetIndex = 1,
-            ))
 
             // Advanced preferences
-            add(SearchablePreference(
-                titleRes = R.string.pref_custom_lua_title,
-                summaryRes = R.string.pref_custom_lua_summary,
-                keywords = listOf("lua", "custom", "button", "code", "player", "overlay", "script"),
-                category = "Player",
-                screen = CustomButtonScreen,
-                targetIndex = 0,
-            ))
             add(SearchablePreference(
                 titleRes = R.string.pref_advanced,
                 summaryRes = R.string.pref_advanced_summary,
@@ -1271,79 +1101,6 @@ object SearchablePreferences {
                 targetIndex = 13,
             ))
 
-            // RexShorts preferences
-            add(SearchablePreference(
-                titleRes = R.string.pref_category_rexshorts_settings,
-                summaryRes = R.string.pref_category_rexshorts_settings_desc,
-                keywords = listOf("shorts", "rexshorts", "tiktok", "reels", "vertical", "video"),
-                category = "RexShorts",
-                screen = ShortsPreferencesScreen,
-                targetIndex = 0,
-            ))
-            add(SearchablePreference(
-                titleRes = R.string.pref_enable_rexshorts,
-                summaryRes = R.string.pref_enable_rexshorts_summary,
-                keywords = listOf("shorts", "rexshorts", "enable", "disable", "tab", "vertical"),
-                category = "RexShorts",
-                screen = ShortsPreferencesScreen,
-                targetIndex = 1,
-            ))
-            add(SearchablePreference(
-                titleRes = R.string.pref_auto_swipe_shorts,
-                summaryRes = R.string.pref_auto_swipe_shorts_summary,
-                keywords = listOf("auto swipe", "loop", "shorts", "rexshorts", "continuous"),
-                category = "RexShorts",
-                screen = ShortsPreferencesScreen,
-                targetIndex = 1,
-            ))
-            add(SearchablePreference(
-                titleRes = R.string.pref_enable_glass_shorts_controls,
-                summaryRes = R.string.pref_enable_glass_shorts_controls_summary,
-                keywords = listOf("glass", "controls", "shorts", "rexshorts", "appearance", "blur"),
-                category = "RexShorts",
-                screen = ShortsPreferencesScreen,
-                targetIndex = 1,
-            ))
-            add(SearchablePreference(
-                titleRes = R.string.pref_show_shorts_back_button,
-                summaryRes = R.string.pref_show_shorts_back_button_summary,
-                keywords = listOf("back button", "navigation", "shorts", "rexshorts", "controls"),
-                category = "RexShorts",
-                screen = ShortsPreferencesScreen,
-                targetIndex = 1,
-            ))
-            add(SearchablePreference(
-                titleRes = R.string.pref_include_short_horizontal_videos,
-                summaryRes = R.string.pref_include_short_horizontal_videos_summary,
-                keywords = listOf("horizontal", "landscape", "short videos", "shorts", "rexshorts"),
-                category = "RexShorts",
-                screen = ShortsPreferencesScreen,
-                targetIndex = 3,
-            ))
-            add(SearchablePreference(
-                titleRes = R.string.pref_max_horizontal_video_duration,
-                keywords = listOf("duration", "max duration", "minutes", "horizontal", "shorts"),
-                category = "RexShorts",
-                screen = ShortsPreferencesScreen,
-                targetIndex = 3,
-            ))
-            add(SearchablePreference(
-                titleRes = R.string.pref_sourced_folders,
-                summaryRes = R.string.pref_sourced_folders_all,
-                keywords = listOf("sourced folders", "folders", "shorts", "source", "select"),
-                category = "RexShorts",
-                screen = ShortsPreferencesScreen,
-                targetIndex = 3,
-            ))
-            add(SearchablePreference(
-                titleRes = R.string.pref_blocked_videos,
-                summaryRes = R.string.pref_blocked_videos_summary,
-                keywords = listOf("blocked", "blacklist", "hide", "shorts", "manage"),
-                category = "RexShorts",
-                screen = ShortsPreferencesScreen,
-                targetIndex = 5,
-            ))
-
             // Integrations preferences
             add(SearchablePreference(
                 title = "Jellyfin",
@@ -1352,78 +1109,6 @@ object SearchablePreferences {
                 category = "Integrations",
                 screen = JellyfinSettingsScreen,
                 targetIndex = 0,
-            ))
-            add(SearchablePreference(
-                title = "yt-dlp",
-                summary = "Manage REX Ytdlp & extractor preferences",
-                keywords = listOf("ytdl", "yt-dlp", "youtube", "extractor", "stream", "downloader", "addon"),
-                category = "Integrations",
-                screen = YtdlSettingsScreen,
-                targetIndex = 0,
-            ))
-            add(SearchablePreference(
-                title = "Resolution Preference",
-                summary = "Auto / Best, 4K, 2K, 1080p, 720p, 480p, Audio Only",
-                keywords = listOf("resolution", "quality", "1080p", "4k", "yt-dlp", "stream", "video"),
-                category = "Integrations",
-                screen = YtdlSettingsScreen,
-                targetIndex = 2,
-            ))
-            add(SearchablePreference(
-                title = "Geo-Bypass",
-                summary = "Bypass geographic video restrictions where possible",
-                keywords = listOf("geo-bypass", "region", "country", "restrictions", "yt-dlp", "bypass"),
-                category = "Integrations",
-                screen = YtdlSettingsScreen,
-                targetIndex = 2,
-            ))
-            add(SearchablePreference(
-                title = "Prefer Nightly Channel",
-                summary = "Receive cutting-edge yt-dlp nightly extractor fixes",
-                keywords = listOf("nightly", "channel", "updates", "yt-dlp", "extractor", "cutting-edge"),
-                category = "Integrations",
-                screen = YtdlSettingsScreen,
-                targetIndex = 2,
-            ))
-            add(SearchablePreference(
-                title = "Auto-detect Web Pages",
-                summary = "Proactively probe unknown URLs to route HTML web pages through yt-dlp",
-                keywords = listOf("auto-detect", "web", "pages", "urls", "probe", "yt-dlp", "routing"),
-                category = "Integrations",
-                screen = YtdlSettingsScreen,
-                targetIndex = 4,
-            ))
-            add(SearchablePreference(
-                title = "Custom Supported Domains",
-                summary = "Domains (comma or space separated) routed through yt-dlp",
-                keywords = listOf("custom domains", "domains", "websites", "url", "routing", "yt-dlp"),
-                category = "Integrations",
-                screen = YtdlSettingsScreen,
-                targetIndex = 4,
-            ))
-            add(SearchablePreference(
-                title = "Custom Format Selector",
-                summary = "yt-dlp format selector (e.g. bestvideo+bestaudio/best)",
-                keywords = listOf("format", "format selector", "bestvideo", "bestaudio", "yt-dlp", "stream"),
-                category = "Integrations",
-                screen = YtdlSettingsScreen,
-                targetIndex = 6,
-            ))
-            add(SearchablePreference(
-                title = "Proxy",
-                summary = "Proxy URL for yt-dlp connections",
-                keywords = listOf("proxy", "http", "socks5", "network", "yt-dlp"),
-                category = "Integrations",
-                screen = YtdlSettingsScreen,
-                targetIndex = 6,
-            ))
-            add(SearchablePreference(
-                title = "Custom User-Agent",
-                summary = "User-Agent Header for yt-dlp requests",
-                keywords = listOf("user-agent", "header", "http", "browser", "yt-dlp"),
-                category = "Integrations",
-                screen = YtdlSettingsScreen,
-                targetIndex = 6,
             ))
 
             // About

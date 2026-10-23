@@ -43,6 +43,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.style.TextAlign
 import xyz.mpv.rex.R
 import xyz.mpv.rex.domain.media.model.Video
@@ -77,11 +78,10 @@ fun VideoCard(
   onThumbClick: (() -> Unit)? = null,
   isGridMode: Boolean = false,
   gridColumns: Int = 1,
-  showSubtitleIndicator: Boolean = true,
   useFolderNameStyle: Boolean = false,
   allowThumbnailGeneration: Boolean = true,
 ) {
-  val maxLines = if (uiSettings.unlimitedNameLines) Int.MAX_VALUE else 2
+  val maxLines = 2
   
   val thumbnailRepository = koinInject<ThumbnailRepository>()
   val configuration = androidx.compose.ui.platform.LocalConfiguration.current
@@ -92,7 +92,7 @@ fun VideoCard(
   val thumbWidthPx = with(LocalDensity.current) { thumbWidthDp.roundToPx() }
   val thumbHeightPx = (thumbWidthPx / aspect).roundToInt()
 
-  val thumbnailKey = remember(video.id, video.dateModified, video.size, thumbWidthPx, thumbHeightPx) {
+  val thumbnailKey = remember(video.path, video.dateModified, video.size, thumbWidthPx, thumbHeightPx) {
     thumbnailRepository.thumbnailKey(video, thumbWidthPx, thumbHeightPx)
   }
 
@@ -140,29 +140,27 @@ fun VideoCard(
     isWatched = isWatched,
     isGridMode = isGridMode,
     gridColumns = gridColumns,
-    progressPercentage = if (uiSettings.showProgressBar && !isWatched) progressPercentage else null,
     maxTitleLines = maxLines,
     thumbnailSize = thumbWidthDp,
     overlayContent = {
-      // NEW Label
-      if (uiSettings.showUnplayedOldVideoLabel && isOldAndUnplayed) {
+      // MX Player style NEW tag
+      if (isOldAndUnplayed) {
         Surface(
-          shape = pillShape,
-          color = MaterialTheme.colorScheme.errorContainer,
-          contentColor = MaterialTheme.colorScheme.onErrorContainer,
+          shape = RoundedCornerShape(4.dp),
+          color = MaterialTheme.colorScheme.primary,
+          contentColor = MaterialTheme.colorScheme.onPrimary,
           modifier = Modifier
             .align(Alignment.TopStart)
             .padding(6.dp),
-          shadowElevation = 2.dp,
         ) {
           Text(
-            text = stringResource(R.string.video_label_new),
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+            text = "NEW",
+            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
+            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
           )
         }
       }
+
       // Duration overlay
       Surface(
         shape = pillShape,
@@ -198,30 +196,6 @@ fun VideoCard(
       }
     },
     chipsContent = {
-      // Embedded and matching-external subtitle badges form one logical indicator group.
-      // Wait until subtitle metadata resolution is complete so both sources appear together
-      // in the same UI state instead of exposing one badge before the other is ready.
-      if (showSubtitleIndicator && video.subtitleIndicatorReady) {
-        if (video.hasEmbeddedSubtitles && video.subtitleCodec.isNotBlank()) {
-          for (codec in video.subtitleCodec.split(" ").filter { it.isNotBlank() }) {
-            MediaMetadataChip(
-              text = codec,
-              color = MaterialTheme.colorScheme.tertiaryContainer,
-              contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-            )
-          }
-        }
-
-        if (!video.isAudio) {
-          for (format in video.matchingExternalSubtitleFormats) {
-            MediaMetadataChip(
-              text = format,
-              color = MaterialTheme.colorScheme.secondaryContainer,
-              contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-            )
-          }
-        }
-      }
       if (uiSettings.showSizeChip && video.sizeFormatted != "0 B" && video.sizeFormatted != "--") {
         MediaMetadataChip(text = video.sizeFormatted)
       }
@@ -231,9 +205,6 @@ fun VideoCard(
         MediaMetadataChip(text = displayRes)
       } else if (uiSettings.showFramerateInResolution && fpsOnly.isNotEmpty()) {
         MediaMetadataChip(text = "$fpsOnly FPS")
-      }
-      if (uiSettings.showDateChip && video.dateModified > 0) {
-        MediaMetadataChip(text = MediaFormatter.formatDate(video.dateModified * 1000))
       }
     }
   )

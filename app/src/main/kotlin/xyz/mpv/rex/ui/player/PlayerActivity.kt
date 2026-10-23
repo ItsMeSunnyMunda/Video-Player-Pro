@@ -32,7 +32,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
-import xyz.mpv.rex.ui.player.ambient.AmbientGlowOverlay
 import androidx.core.net.toUri
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -46,10 +45,8 @@ import xyz.mpv.rex.database.entities.PlaybackStateEntity
 import xyz.mpv.rex.databinding.PlayerLayoutBinding
 import xyz.mpv.rex.domain.playbackstate.repository.PlaybackStateRepository
 import xyz.mpv.rex.ui.browser.miniplayer.MiniPlayerStateManager
-import xyz.mpv.rex.ui.browser.networkstreaming.proxy.NetworkStreamingProxy
 import xyz.mpv.rex.preferences.AdvancedPreferences
 import xyz.mpv.rex.preferences.DecoderPreferences
-import xyz.mpv.rex.domain.hdr.HdrToysManager
 import xyz.mpv.rex.preferences.AppearancePreferences
 import xyz.mpv.rex.preferences.AudioPreferences
 import xyz.mpv.rex.preferences.BrowserPreferences
@@ -82,8 +79,6 @@ import xyz.mpv.rex.utils.media.M3UParseResult
 import xyz.mpv.rex.domain.thumbnail.ThumbnailRepository
 import xyz.mpv.rex.domain.thumbnail.isMostlySolidThumbnail
 import xyz.mpv.rex.domain.media.model.Video
-import xyz.mpv.rex.domain.ytdl.model.ResolvedStream
-import xyz.mpv.rex.domain.ytdl.model.VideoQuality
 import xyz.mpv.rex.utils.media.MediaFormatter
 import xyz.mpv.rex.utils.storage.FileTypeUtils
 import xyz.mpv.rex.utils.storage.FileFilterUtils
@@ -98,6 +93,10 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import android.view.Surface
+import android.view.SurfaceHolder
+import kotlin.coroutines.resume
+import kotlinx.coroutines.suspendCancellableCoroutine
 import org.koin.android.ext.android.inject
 import java.io.File
 import java.util.Locale
@@ -259,21 +258,6 @@ class PlayerActivity :
             !orientationController.isUserOverridden) {
           setOrientation()
         }
-        player.applyAnime4KShaders()
-
-        if (property == "video-params/h" && value > 0) {
-          val qualities = viewModel.availableVideoQualities.value
-          if (qualities.isNotEmpty()) {
-            val current = viewModel.currentVideoQuality.value
-            if (current == null || current.height != value.toInt()) {
-              val matched = qualities.firstOrNull { !it.isAudioOnly && it.height == value.toInt() }
-              if (matched != null) {
-                Log.d(TAG, "Matched current playing quality from video-params/h ($value) to ${matched.label}")
-                viewModel.currentVideoQuality.value = matched
-              }
-            }
-          }
-        }
       }
 
       override fun onVideoAspectChanged(aspect: Double) {
@@ -312,22 +296,16 @@ class PlayerActivity :
       }
 
       override fun onLuaInvocation(property: String, value: String) {
-        viewModel.handleLuaInvocation(property, value)
+        // Lua scripting removed
       }
 
       override fun onStartFile() {
         isReady = false
-        webSubtitlesJob?.cancel()
-        webSubtitlesJob = null
-        if (!isQualitySwitching) {
-          val currentPath = runCatching { MPVLib.getPropertyString("path") }.getOrNull()
-          val isNetwork = currentPath?.let { path ->
-            HttpUtils.isNetworkStream(runCatching { Uri.parse(path) }.getOrNull())
-          } ?: false
-          viewModel.onFileStartLoading(isNetwork = isNetwork)
-        } else {
-          viewModel.onQualitySwitchLoading()
-        }
+        val currentPath = runCatching { MPVLib.getPropertyString("path") }.getOrNull()
+        val isNetwork = currentPath?.let { path ->
+          HttpUtils.isNetworkStream(runCatching { Uri.parse(path) }.getOrNull())
+        } ?: false
+        viewModel.onFileStartLoading(isNetwork = isNetwork)
       }
 
       override fun onFileLoaded() {
@@ -336,21 +314,6 @@ class PlayerActivity :
         isAutoAdvancing = false
         handleFileLoaded()
         isReady = true
-
-        val subs = pendingWebSubtitles
-        pendingWebSubtitles = null
-        if (!subs.isNullOrEmpty()) {
-          loadWebSubtitlesAsync(subs)
-        }
-
-        val extraAudio = pendingRemoteAudio
-        pendingRemoteAudio = null
-        if (!extraAudio.isNullOrEmpty()) {
-          android.util.Log.i("YtdlIpc", "onFileLoaded drain: extraAudio=${extraAudio.size}")
-          extraAudio.forEach { track ->
-            viewModel.addRemoteAudio(track.url, track.label, select = false, lang = track.lang)
-          }
-        }
       }
 
       override fun onPlaybackRestart() {
@@ -436,16 +399,9 @@ class PlayerActivity :
    */
   private val decoderPreferences: DecoderPreferences by inject()
 
-  /**
-   * Manager for hdr-toys shaders.
-   */
-  private val hdrToysManager: HdrToysManager by inject()
   internal val miniPlayerStateManager: MiniPlayerStateManager by inject()
-  private val headlessPlaybackController: HeadlessPlaybackController by inject()
   private val thumbnailRepository: ThumbnailRepository by inject()
   private val remoteClient: xyz.mpv.rex.jellyfin.remote.JellyfinRemoteClient by inject()
-  internal val ytDlClient: xyz.mpv.rex.domain.ytdl.YtDlClient by inject()
-  private val ytdlPreferences: xyz.mpv.rex.preferences.YtdlPreferences by inject()
   internal var jellyfinExternalInfo: xyz.mpv.rex.jellyfin.JellyfinExternalHelper.ExternalInfo? = null
   private val uriThumbnailCache = android.util.LruCache<String, android.graphics.Bitmap>(32)
 
@@ -476,12 +432,6 @@ class PlayerActivity :
    */
   internal var mediaIdentifier = ""
 
-  internal var activeNetworkStreamId: String?
-    get() = playlistLoader.activeNetworkStreamId
-    set(value) {
-      playlistLoader.activeNetworkStreamId = value
-    }
-
   /**
    * Helper for managing Picture-in-Picture mode.
    */
@@ -492,12 +442,6 @@ class PlayerActivity :
   private var isAutoAdvancing = false
   private var lastFileLoadedTimeMs = 0L
   internal var startedAtSavedPosition = false
-  private var pendingWebSubtitles: Map<String, String>? = null
-  private var pendingRemoteAudio: List<xyz.mpv.rex.domain.ytdl.model.AudioTrack>? = null
-  private var currentActiveWebSubtitles: Map<String, String>? = null
-  private var currentResolvedStream: ResolvedStream? = null
-  private var isQualitySwitching = false
-  private var webSubtitlesJob: kotlinx.coroutines.Job? = null
   internal var isOrientationRestored: Boolean
     get() = orientationController.isOrientationRestored
     set(value) {
@@ -531,7 +475,6 @@ class PlayerActivity :
     set(value) {
       backgroundPlaybackController.isInBackgroundPlayback = value
     }
-  private var inheritedNativeSession = false // MPV ownership came from HeadlessPlaybackController
 
   @Volatile private var needsAspectReapply = false // Track if aspect ratio needs to be reapplied after video is ready (for Video/Smart orientation modes)
   var isPlaybackStateLoaded: Boolean
@@ -584,13 +527,7 @@ class PlayerActivity :
     // The headless controller may retain MPV idle after its mini player is closed. Always take
     // ownership before initializing so a normal video launch cannot create the global singleton
     // a second time.
-    val attachExistingSession = headlessPlaybackController.ownsNativeSession
-    if (attachExistingSession) {
-      setupMPVForHandoff()
-    } else {
-      setupMPV()
-    }
-    viewModel.onMpvCoreInitialized()
+    setupMPV()
     MediaPlaybackService.createNotificationChannel(this)
     setupAudio()
     setupBackPressHandler()
@@ -733,9 +670,8 @@ class PlayerActivity :
     val isAlreadyPlayingCurrent = !hasPlayableMediaInIntent && !currentMpvPath.isNullOrBlank() && currentMpvPath != "null"
 
     if (hasPlayableMediaInIntent) {
-      val isNetwork = HttpUtils.isNetworkStream(runCatching { Uri.parse(playableUri) }.getOrNull()) || ytDlClient.requiresYtdl(playableUri)
+      val isNetwork = HttpUtils.isNetworkStream(runCatching { Uri.parse(playableUri) }.getOrNull())
       viewModel.onFileStartLoading(isNetwork = isNetwork)
-      activeNetworkStreamId = NetworkStreamingProxy.getInstance().extractStreamId(playableUri)
       if (isManualBackgroundPlayback || isInBackgroundPlayback) {
         isManualBackgroundPlayback = false
         endBackgroundPlayback()
@@ -749,7 +685,6 @@ class PlayerActivity :
       }
     } else if (isAlreadyPlayingCurrent) {
       Log.d(TAG, "MPV is already playing media: $currentMpvPath. Re-attaching to active session.")
-      activeNetworkStreamId = NetworkStreamingProxy.getInstance().extractStreamId(currentMpvPath)
       isReady = true
       enableVideoAfterBackground()
     }
@@ -759,18 +694,6 @@ class PlayerActivity :
 
     // Apply persisted shuffle state after playlist is loaded
     viewModel.applyPersistedShuffleState()
-
-    // Observe selected Lua scripts for runtime loading
-    lifecycleScope.launch {
-      var previousScripts = advancedPreferences.selectedLuaScripts.get()
-      advancedPreferences.selectedLuaScripts.changes().collect { newScripts ->
-        val addedScripts = newScripts - previousScripts
-        addedScripts.forEach { scriptName ->
-          loadScriptAtRuntime(scriptName)
-        }
-        previousScripts = newScripts
-      }
-    }
 
     // Observe hideOsdText preference
     lifecycleScope.launch {
@@ -831,11 +754,12 @@ class PlayerActivity :
 
   internal fun playDirectMedia(playableUri: String) {
     isReady = false
-    currentResolvedStream = null
-    currentActiveWebSubtitles = null
-    viewModel.clearVideoQualities()
     if (!playerPreferences.autoplayOnOpen.get() || playerPreferences.savePositionOnQuit.get() || playerPreferences.resumePlaybackMode.get() != ResumePlaybackMode.Never) {
       runCatching { MPVLib.setPropertyBoolean("pause", true) }
+    }
+    // Set vid="no" during load so keyframe 0 is never painted before resume seek
+    if (mpvInitialized && (playerPreferences.savePositionOnQuit.get() || playerPreferences.resumePlaybackMode.get() != ResumePlaybackMode.Never)) {
+      safeSetPropertyString("vid", "no")
     }
     if (mpvInitialized && player.holder.surface.isValid) {
       lifecycleScope.launch(Dispatchers.Default) {
@@ -847,211 +771,9 @@ class PlayerActivity :
   }
 
   internal fun loadMediaOrResolveWebStream(playableUri: String) {
-    val isNetwork = HttpUtils.isNetworkStream(runCatching { Uri.parse(playableUri) }.getOrNull()) || ytDlClient.requiresYtdl(playableUri)
+    val isNetwork = HttpUtils.isNetworkStream(runCatching { Uri.parse(playableUri) }.getOrNull())
     viewModel.onFileStartLoading(isNetwork = isNetwork)
-    if (ytDlClient.requiresYtdl(playableUri)) {
-      resolveWebStream(playableUri)
-      return
-    }
-
-    val uri = runCatching { Uri.parse(playableUri) }.getOrNull()
-    val isDirectMedia = uri != null && HttpUtils.isDirectMediaUrl(uri)
-
-    // For unknown URLs when addon is installed: probe Content-Type if auto-detection is enabled
-    if (!isDirectMedia && ytDlClient.isAddonInstalled() && ytdlPreferences.autoDetectWebPages.get()) {
-      lifecycleScope.launch {
-        val isWebPage = HttpUtils.probeIsHtmlWebPage(playableUri)
-        if (isWebPage) {
-          Log.d(TAG, "Auto-detected HTML web page for unknown URL: $playableUri. Resolving via yt-dlp.")
-          resolveWebStream(playableUri)
-        } else {
-          Log.d(TAG, "Probed URL is direct media/stream: $playableUri. Playing directly via MPV.")
-          playDirectMedia(playableUri)
-        }
-      }
-      return
-    }
-
     playDirectMedia(playableUri)
-  }
-
-  private fun resolveWebStream(playableUri: String) {
-    if (!ytDlClient.isAddonInstalled()) {
-      Log.w(TAG, "Web stream URL requires REX Ytdlp, but addon is not installed: $playableUri")
-      android.widget.Toast.makeText(
-        this,
-        "REX Ytdlp required to play YouTube and web video links",
-        android.widget.Toast.LENGTH_LONG
-      ).show()
-      viewModel.onFileLoaded(0.0)
-      return
-    }
-
-    isReady = false
-    viewModel.onFileStartLoading(isNetwork = true)
-    runCatching { MPVLib.setPropertyString("idle", "yes") }
-
-    lifecycleScope.launch {
-      Log.d(TAG, "Resolving web stream URL via REX Ytdlp: $playableUri")
-      val resolved = ytDlClient.resolveStream(playableUri, ytdlPreferences.buildExtractionOptions())
-      if (resolved.isSuccess && !resolved.videoUrl.isNullOrBlank()) {
-        Log.d(TAG, "Stream resolved successfully: ${resolved.title}, isDASH=${resolved.isDASH}")
-
-        // Set up headers using PlaybackHttpHeaders
-        val fullHeaders = PlaybackHttpHeaders.withFallbackHeaders(resolved.httpHeaders, playableUri)
-        val userAgent = PlaybackHttpHeaders.userAgent(fullHeaders)
-        val mpvHeaderFields = PlaybackHttpHeaders.toMpvHeaderFields(fullHeaders)
-
-        if (!userAgent.isNullOrBlank()) {
-          runCatching { MPVLib.setPropertyString("user-agent", userAgent) }
-        }
-        if (mpvHeaderFields.isNotBlank()) {
-          Log.d(TAG, "Setting MPV http-header-fields: $mpvHeaderFields")
-          runCatching { MPVLib.setPropertyString("http-header-fields", mpvHeaderFields) }
-        } else {
-          runCatching { MPVLib.setPropertyString("http-header-fields", "") }
-        }
-
-        // Set custom title for OSD and MediaSession
-        val mediaTitle = resolved.title ?: fileName.ifBlank { "Web Stream" }
-        fileName = mediaTitle
-        mediaIdentifier = getMediaIdentifier(intent, fileName)
-        viewModel.setMediaTitle(fileName)
-        viewModel.setMediaIdentifier(mediaIdentifier)
-        intent.putExtra("title", mediaTitle)
-        runCatching { MPVLib.setPropertyString("force-media-title", mediaTitle) }
-
-        // Construct playback stream URL: use MPV EDL for DASH multi-stream
-        val streamToPlay = if (resolved.isDASH && !resolved.audioUrl.isNullOrBlank()) {
-          val vBytes = resolved.videoUrl.toByteArray(Charsets.UTF_8).size
-          val aBytes = resolved.audioUrl.toByteArray(Charsets.UTF_8).size
-          "edl://!new_stream;!no_clip;!no_chapters;%$vBytes%${resolved.videoUrl};!new_stream;!no_clip;!no_chapters;%$aBytes%${resolved.audioUrl}"
-        } else {
-          resolved.videoUrl
-        }
-
-        currentResolvedStream = resolved
-        currentActiveWebSubtitles = resolved.subtitles.takeIf { it.isNotEmpty() }
-        pendingWebSubtitles = currentActiveWebSubtitles
-        val ytdlPref = ytdlPreferences.qualityPreference.get()
-        val matchedQuality = resolved.availableQualities.firstOrNull { it.videoUrl == resolved.videoUrl }
-          ?: resolved.availableQualities.firstOrNull { it.videoUrl?.substringBefore("?") == resolved.videoUrl?.substringBefore("?") }
-          ?: (if (ytdlPref == "audio_only") resolved.availableQualities.firstOrNull { it.isAudioOnly } else null)
-          ?: (if (ytdlPref.toIntOrNull() != null) resolved.availableQualities.firstOrNull { it.height == ytdlPref.toInt() } else null)
-          ?: resolved.availableQualities.firstOrNull()
-        viewModel.setAvailableVideoQualities(resolved.availableQualities, matchedQuality)
-
-        Log.d(TAG, "Starting playback of streamToPlay: $streamToPlay (isDASH=${resolved.isDASH})")
-
-        // Defer alternate-audio attach until mpv has loaded the primary file:
-        // audio-add on an idle/unloaded mpv is dropped, so we stash and drain in onFileLoaded().
-        android.util.Log.i("YtdlIpc", "attach point: resolved.audioTracks=${resolved.audioTracks.size}")
-        pendingRemoteAudio = resolved.audioTracks.takeIf { it.isNotEmpty() }
-
-        val autoplay = playerPreferences.autoplayOnOpen.get()
-        if (!autoplay) {
-          runCatching { MPVLib.setPropertyBoolean("pause", true) }
-        } else {
-          runCatching { MPVLib.setPropertyBoolean("pause", false) }
-        }
-
-        // Check if there is a saved resume position
-        val resumeMode = playerPreferences.resumePlaybackMode.get()
-        val shouldAutoResume = (resumeMode == ResumePlaybackMode.Always) ||
-            (resumeMode == ResumePlaybackMode.Ask && playerPreferences.autoResumeOnAsk.get())
-        val savedPos = if (playerPreferences.savePositionOnQuit.get() && shouldAutoResume) {
-          withContext(Dispatchers.IO) {
-            playbackStateRepository.getVideoDataByTitle(mediaIdentifier)?.lastPosition?.takeIf { it > 3 }
-          }
-        } else null
-
-        val hasMpvStarted = mpvInitialized
-        val loadOptions = buildList {
-          add(if (!autoplay) "pause=yes" else "pause=no")
-          if (hasMpvStarted && savedPos != null) {
-            add("start=$savedPos")
-            startedAtSavedPosition = true
-          }
-          if (resolved.isDASH) {
-            add("flatten-editions=yes")
-          }
-        }.joinToString(",")
-
-        if (hasMpvStarted) {
-          lifecycleScope.launch(Dispatchers.Default) {
-            Log.d(TAG, "Executing MPVLib.command loadfile for web stream with options: $loadOptions")
-            MPVLib.command("loadfile", streamToPlay, "replace", "-1", loadOptions)
-          }
-        } else {
-          player.playFile(streamToPlay)
-        }
-      } else {
-        Log.w(TAG, "Failed to resolve stream via yt-dlp: ${resolved.errorMessage}. Attempting direct MPV playback as fallback.")
-        playDirectMedia(playableUri)
-      }
-    }
-  }
-
-  internal fun switchVideoQuality(quality: VideoQuality?) {
-    val resolved = currentResolvedStream ?: return
-    val targetStreamUrl: String
-    val isDASH: Boolean
-
-    if (quality == null) {
-      // Revert to "Auto" (original resolved stream)
-      val defaultQuality = resolved.availableQualities.firstOrNull { it.videoUrl == resolved.videoUrl }
-      viewModel.currentVideoQuality.value = defaultQuality
-      val vUrl = resolved.videoUrl ?: return
-      val aUrl = resolved.audioUrl
-      isDASH = resolved.isDASH && !aUrl.isNullOrBlank()
-      targetStreamUrl = if (isDASH && !aUrl.isNullOrBlank()) {
-        val vBytes = vUrl.toByteArray(Charsets.UTF_8).size
-        val aBytes = aUrl.toByteArray(Charsets.UTF_8).size
-        "edl://!new_stream;!no_clip;!no_chapters;%$vBytes%$vUrl;!new_stream;!no_clip;!no_chapters;%$aBytes%$aUrl"
-      } else {
-        vUrl
-      }
-    } else {
-      viewModel.currentVideoQuality.value = quality
-      val vUrl = quality.videoUrl ?: return
-      val aUrl = quality.audioUrl
-      isDASH = quality.isDASH && !aUrl.isNullOrBlank()
-      targetStreamUrl = if (isDASH && !aUrl.isNullOrBlank()) {
-        val vBytes = vUrl.toByteArray(Charsets.UTF_8).size
-        val aBytes = aUrl.toByteArray(Charsets.UTF_8).size
-        "edl://!new_stream;!no_clip;!no_chapters;%$vBytes%$vUrl;!new_stream;!no_clip;!no_chapters;%$aBytes%$aUrl"
-      } else {
-        vUrl
-      }
-    }
-
-    val currentPos = runCatching { MPVLib.getPropertyDouble("time-pos") }.getOrNull()
-      ?: ((viewModel.pos ?: 0).toDouble())
-    val isPaused = runCatching { MPVLib.getPropertyBoolean("pause") }.getOrNull() ?: false
-
-    isQualitySwitching = true
-    viewModel.onQualitySwitchStarted(currentPos)
-
-    // Preserve pending subtitles so they reload once the new stream is loaded
-    pendingWebSubtitles = currentActiveWebSubtitles
-
-    val loadOptions = buildList {
-      add(if (isPaused) "pause=yes" else "pause=no")
-      if (currentPos > 0) add("start=$currentPos")
-      if (isDASH) add("flatten-editions=yes")
-    }.joinToString(",")
-
-    lifecycleScope.launch(Dispatchers.Default) {
-      Log.d(TAG, "Switching video quality to ${quality?.label ?: "Auto"} with options: $loadOptions")
-      MPVLib.command("loadfile", targetStreamUrl, "replace", "-1", loadOptions)
-    }
-
-    val displayLabel = quality?.label ?: getString(R.string.video_quality_auto)
-    android.widget.Toast.makeText(
-      this,
-      "${getString(R.string.video_quality)}: $displayLabel",
-      android.widget.Toast.LENGTH_SHORT
-    ).show()
   }
 
   @RequiresApi(Build.VERSION_CODES.P)
@@ -1100,27 +822,15 @@ class PlayerActivity :
 
   @RequiresApi(Build.VERSION_CODES.P)
   private fun setupPlayerControls() {
-    viewModel.ambientController.startCapture(
-      surfaceViewProvider = { binding.player },
-      isPlayingProvider = { isReady && !isFinishing && viewModel.paused != true },
-      isEligibleProvider = {
-        (viewModel.videoAspect.value == VideoAspect.Fit || viewModel.currentAspectRatio.value > 0.0) &&
-          viewModel.getVideoOutAspect() != null
-      }
-    )
-
     binding.controls.setContent {
       MpvexPlayerTheme {
-        Box(modifier = Modifier.fillMaxSize()) {
-          AmbientGlowOverlay(viewModel = viewModel)
-          PlayerControls(
-            viewModel = viewModel,
-            onBackPress = {
-              handleBackPress()
-            },
-            modifier = Modifier,
-          )
-        }
+        PlayerControls(
+          viewModel = viewModel,
+          onBackPress = {
+            handleBackPress()
+          },
+          modifier = Modifier,
+        )
       }
     }
   }
@@ -1188,24 +898,10 @@ class PlayerActivity :
       // This prevents the main thread from blocking infinitely during activity destruction (ANR prevention)
       playbackStateController.waitForPendingSave(200)
 
-      webSubtitlesJob?.cancel()
-      webSubtitlesJob = null
-
       cleanupMPV()
       cleanupAudio()
       cleanupReceivers()
       releaseMediaSession()
-
-      activeNetworkStreamId?.let { streamId ->
-        activeNetworkStreamId = null
-        if (!isManualBackgroundPlayback) {
-          kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
-            NetworkStreamingProxy.getInstance().unregisterStream(streamId)
-          }
-        }
-      }
-
-      runCatching { ytDlClient.unbind() }
     }.onFailure { e ->
       Log.e(TAG, "Error during onDestroy", e)
     }
@@ -1229,16 +925,6 @@ class PlayerActivity :
 
     // Stop media notification service when activity is destroyed
     endBackgroundPlayback()
-
-    if (inheritedNativeSession) {
-      runCatching { MPVLib.removeObserver(playerObserver) }
-      // Prevent SurfaceView teardown from racing the explicit detach performed by the controller.
-      player.holder.removeCallback(player)
-      headlessPlaybackController.retainAfterPlayerExit()
-      inheritedNativeSession = false
-      mpvInitialized = false
-      return
-    }
 
     MPVLifecycleLock.onTeardownStart()
     try {
@@ -1475,88 +1161,6 @@ class PlayerActivity :
 
     // Add observer after initialization
     MPVLib.addObserver(playerObserver)
-  }
-
-  /**
-   * Takes over an already-running MPV instance created by [HeadlessPlaybackController]
-   * (direct mini player mode). Does NOT call [player.initialize] — that would invoke
-   * `MPVLib.create()` a second time on the global native singleton and crash. Instead it
-   * relinquishes ownership from the controller and re-registers this activity's surface
-   * callback and observers, so playback continues seamlessly with video re-enabled.
-   */
-  private fun setupMPVForHandoff() {
-    if (MPVLifecycleLock.isTearingDown.value) {
-      kotlinx.coroutines.runBlocking(Dispatchers.IO) {
-        MPVLifecycleLock.awaitTeardown()
-      }
-    }
-
-    headlessPlaybackController.detachForHandoff()
-    player.attachToExistingSession()
-    inheritedNativeSession = true
-    mpvInitialized = true
-    Log.d(TAG, "MPV attached to existing headless session")
-
-    runCatching {
-      MPVLib.setPropertyInt("osd-level", if (playerPreferences.hideOsdText.get()) 0 else 1)
-    }.onFailure { e ->
-      Log.e(TAG, "Error setting initial osd-level", e)
-    }
-
-    MPVLib.addObserver(playerObserver)
-  }
-
-  /**
-   * Loads a specific Lua script at runtime without restarting the player.
-   * Finds the script in the user's MPV directory, copies it to internal storage,
-   * and commands MPV to load it.
-   */
-  private fun loadScriptAtRuntime(scriptName: String) {
-    if (!mpvInitialized || isFinishing) return
-
-    val mpvConfStorageUri = advancedPreferences.mpvConfStorageUri.get()
-    if (mpvConfStorageUri.isBlank()) return
-
-    lifecycleScope.launch(Dispatchers.IO) {
-      runCatching {
-        val tree = DocumentFile.fromTreeUri(this@PlayerActivity, mpvConfStorageUri.toUri())
-        if (tree != null && tree.exists()) {
-          // Look for scripts/ subfolder first (case-insensitive), fall back to root
-          val scriptsDir = MpvConfigSync.findSubdirCaseInsensitive(tree, "scripts") ?: tree
-
-          val scriptFile = scriptsDir.listFiles().firstOrNull {
-            it.name == scriptName
-          }
-
-          if (scriptFile != null) {
-            val internalScriptsDir = File(filesDir, "scripts")
-            if (!internalScriptsDir.exists()) internalScriptsDir.mkdirs()
-
-            val targetFile = File(internalScriptsDir, scriptName)
-
-            contentResolver.openInputStream(scriptFile.uri)?.use { input ->
-              targetFile.outputStream().use { output ->
-                input.copyTo(output)
-              }
-            }
-
-            withContext(Dispatchers.Main) {
-              MPVLib.command("load-script", targetFile.absolutePath)
-              viewModel.showToast("Loaded script: $scriptName")
-            }
-          }
-        }
-      }.onFailure { e ->
-        Log.e(TAG, "Error loading script at runtime: $scriptName", e)
-        withContext(Dispatchers.Main) {
-          android.widget.Toast.makeText(
-            this@PlayerActivity,
-            "Failed to load script: ${e.message}",
-            android.widget.Toast.LENGTH_LONG
-          ).show()
-        }
-      }
-    }
   }
 
   override fun onResume() {
@@ -1911,13 +1515,6 @@ class PlayerActivity :
    * applies user preferences, and sets up metadata and media session.
    */
   private fun handleFileLoaded() {
-    if (isQualitySwitching) {
-      isQualitySwitching = false
-      val loadedDurationSec = MPVLib.getPropertyDouble("duration") ?: 0.0
-      viewModel.onFileLoaded(loadedDurationSec)
-      return
-    }
-
     // Extract fileName from intent only if not already set
     // This preserves fileName set in onNewIntent or onCreate
     if (fileName.isBlank()) {
@@ -1939,9 +1536,6 @@ class PlayerActivity :
     if (isInBackgroundPlayback) {
       disableVideoForBackground()
     }
-
-    // Reset AB loop values when video changes
-    viewModel.clearABLoop()
 
     // Reset external audio tracks when a new video starts
     viewModel.resetExternalAudioTracks()
@@ -2124,29 +1718,14 @@ class PlayerActivity :
       viewModel.showControls()
     }
 
-    val isWebStream = ytDlClient.requiresYtdl(parsePathFromIntent(intent) ?: "")
-    if (subtitlesPreferences.autoloadMatchingSubtitles.get() && !isWebStream) {
+    if (subtitlesPreferences.autoloadMatchingSubtitles.get()) {
       lifecycleScope.launch {
-        // For network files played via proxy (SMB/WebDAV/FTP), use the original network file path
-        val networkFilePath = intent.getStringExtra("network_file_path")
-        val networkConnectionId = intent.getLongExtra("network_connection_id", -1L)
-
-        if (networkFilePath != null && networkConnectionId != -1L) {
-          // Pass network file path and connection ID for subtitle discovery
+        val filePath = parsePathFromIntent(intent)
+        if (filePath != null) {
           SubtitleOps.autoloadSubtitles(
-            videoFilePath = networkFilePath,
+            videoFilePath = filePath,
             videoFileName = fileName,
-            networkConnectionId = networkConnectionId,
           )
-        } else {
-          // Regular file or direct network stream
-          val filePath = parsePathFromIntent(intent)
-          if (filePath != null) {
-            SubtitleOps.autoloadSubtitles(
-              videoFilePath = filePath,
-              videoFileName = fileName,
-            )
-          }
         }
       }
     }
@@ -2394,49 +1973,6 @@ class PlayerActivity :
     MPVLib.setPropertyInt("secondary-sub-pos", subtitlesPreferences.secondarySubPos.get())
 
     Log.d(TAG, "Applied subtitle preferences")
-  }
-
-  /**
-   * Asynchronously loads web subtitles extracted by yt-dlp on a background IO thread.
-   * Prioritizes preferred language and system locale, and paces requests to prevent
-   * blocking libmpv's command queue or overwhelming network resources.
-   */
-  private fun loadWebSubtitlesAsync(subs: Map<String, String>) {
-    webSubtitlesJob?.cancel()
-    webSubtitlesJob = lifecycleScope.launch(Dispatchers.IO) {
-      val preferredLanguages = subtitlesPreferences.preferredLanguages.get()
-        .split(",")
-        .map { it.trim().lowercase() }
-        .filter { it.isNotEmpty() }
-      val systemLang = Locale.getDefault().language.lowercase()
-
-      // Sort subtitles so preferred languages appear first
-      val sortedSubs = subs.entries.sortedByDescending { (lang, _) ->
-        val cleanLang = lang.lowercase()
-        when {
-          preferredLanguages.any { pref -> cleanLang == pref || cleanLang.startsWith("$pref-") || cleanLang.startsWith("${pref}_") } -> 2
-          cleanLang == systemLang || cleanLang.startsWith("$systemLang-") || cleanLang.startsWith("${systemLang}_") -> 1
-          else -> 0
-        }
-      }
-
-      for ((lang, subUrl) in sortedSubs) {
-        if (!isActive || !mpvInitialized || player.isExiting || isFinishing) break
-
-        val locale = runCatching { Locale.forLanguageTag(lang) }.getOrNull()
-        val friendlyTitle = locale?.getDisplayName(Locale.getDefault())
-          ?.takeIf { it.isNotBlank() && !it.equals(lang, ignoreCase = true) }
-          ?: locale?.displayLanguage?.takeIf { it.isNotBlank() }
-          ?: lang
-
-        runCatching {
-          MPVLib.command("sub-add", subUrl, "auto", friendlyTitle, lang)
-        }.onFailure { e ->
-          Log.w(TAG, "Failed to add web subtitle for $lang: ${e.message}")
-        }
-        delay(40)
-      }
-    }
   }
 
   /**
@@ -2955,8 +2491,6 @@ class PlayerActivity :
    * Load a playlist item by index
    */
   fun loadPlaylistItem(index: Int) = playlistLoader.loadPlaylistItem(index)
-
-  internal fun switchActiveNetworkStream(playableUri: String?) = playlistLoader.switchActiveNetworkStream(playableUri)
 
   internal fun getFastDurationMsForUri(uri: Uri): Long = playlistLoader.getFastDurationMsForUri(uri)
 

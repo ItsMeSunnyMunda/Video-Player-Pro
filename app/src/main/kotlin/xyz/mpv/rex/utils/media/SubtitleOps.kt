@@ -2,8 +2,6 @@ package xyz.mpv.rex.utils.media
 
 import android.util.Log
 import xyz.mpv.rex.preferences.SubtitlesPreferences
-import xyz.mpv.rex.repository.NetworkRepository
-import xyz.mpv.rex.ui.browser.networkstreaming.proxy.NetworkStreamingProxy
 import `is`.xyz.mpv.MPVLib
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -18,7 +16,6 @@ import java.util.Locale
  */
 object SubtitleOps : KoinComponent {
   private const val TAG = "SubtitleOps"
-  private val networkRepository: NetworkRepository by inject()
   private val subtitlesPreferences: SubtitlesPreferences by inject()
   private val context: android.content.Context by inject()
 
@@ -49,7 +46,6 @@ object SubtitleOps : KoinComponent {
   suspend fun autoloadSubtitles(
     videoFilePath: String,
     videoFileName: String,
-    networkConnectionId: Long = -1L,
   ) = withContext(Dispatchers.IO) {
     try {
       // Skip file descriptor URIs (these don't have a parent directory concept)
@@ -58,14 +54,7 @@ object SubtitleOps : KoinComponent {
       // For content:// URIs, we can't autoload (no access to parent directory)
       if (videoFilePath.startsWith("content://")) return@withContext
 
-      // Check if this is a network file with connection ID (SMB/FTP/WebDAV via proxy)
-      if (networkConnectionId != -1L) {
-        // For network files, scan the directory using network client
-        autoloadNetworkFileSubtitles(videoFilePath, videoFileName, networkConnectionId)
-        return@withContext
-      }
-
-      // Check if this is a network stream (http, https, ftp, ftps, smb, webdav, etc.)
+      // Check if this is a network stream (http, https, etc.)
       val isNetworkStream = videoFilePath.matches(Regex("^[a-zA-Z][a-zA-Z0-9+.-]*://.*"))
 
       if (isNetworkStream) {
@@ -81,118 +70,6 @@ object SubtitleOps : KoinComponent {
       }
     } catch (e: Exception) {
       Log.e(TAG, "Error loading subtitles", e)
-    }
-  }
-
-  /**
-   * Autoload subtitles for network files (SMB/FTP/WebDAV)
-   * Lists files in the same directory and loads matching subtitle files via proxy
-   */
-  private suspend fun autoloadNetworkFileSubtitles(
-    videoFilePath: String,
-    videoFileName: String,
-    networkConnectionId: Long,
-  ) {
-    try {
-      Log.d(TAG, "Autoloading subtitles for network file: $videoFilePath")
-      
-      // Get the network connection
-      val connection = networkRepository.getConnectionById(networkConnectionId)
-      if (connection == null) {
-        Log.w(TAG, "Network connection not found: $networkConnectionId")
-        return
-      }
-
-      // Get the directory path (parent of the video file)
-      val directoryPath = videoFilePath.substringBeforeLast('/', "")
-      if (directoryPath.isEmpty()) {
-        Log.w(TAG, "Could not determine directory path from: $videoFilePath")
-        return
-      }
-
-      Log.d(TAG, "Scanning directory: $directoryPath")
-
-      // Get base name without extension
-      val baseName = videoFileName.substringBeforeLast('.')
-
-      // List files in the directory
-      val filesResult = networkRepository.listFiles(connection, directoryPath)
-      if (filesResult.isFailure) {
-        Log.w(TAG, "Failed to list network directory: ${filesResult.exceptionOrNull()?.message}")
-        return
-      }
-
-      val files = filesResult.getOrNull() ?: emptyList()
-      
-      // Filter for subtitle files that match the video base name
-      val subtitles = files.filter { file ->
-        !file.isDirectory &&
-          isSubtitleFile(file.name) &&
-          file.name.substringBeforeLast('.').startsWith(baseName, ignoreCase = true)
-      }
-
-      if (subtitles.isEmpty()) {
-        Log.d(TAG, "No matching subtitle files found for: $baseName")
-        return
-      }
-
-      Log.d(TAG, "Found ${subtitles.size} subtitle file(s)")
-
-      // Load subtitles via proxy
-      val proxy = NetworkStreamingProxy.getInstance()
-      
-      // Keep mpv calls off the main thread for network-backed subtitle sources to avoid ANRs.
-      subtitles.forEachIndexed { index, subtitle ->
-        try {
-          // Extract just the filename without path for display
-          // Handle both forward slashes and backslashes
-          val displayName = subtitle.name
-            .substringAfterLast('/')
-            .substringAfterLast('\\')
-            .takeIf { it.isNotBlank() } ?: subtitle.name
-
-          Log.d(TAG, "Processing subtitle - name: '${subtitle.name}', displayName: '$displayName', path: '${subtitle.path}'")
-
-          // Create a URL-safe filename for the streamId
-          val urlSafeFilename = displayName
-            .replace(" ", ".")
-            .replace(Regex("[^a-zA-Z0-9._-]"), "")
-
-          // Register subtitle stream with proxy using the filename in streamId
-          val streamId = urlSafeFilename
-          val proxyUrl = proxy.registerStream(
-            streamId = streamId,
-            connection = connection,
-            filePath = subtitle.path,
-            fileSize = subtitle.size,
-            mimeType = "text/plain",
-          )
-
-          // Get current subtitle track count before adding
-          val trackCountBefore = MPVLib.getPropertyInt("track-list/count") ?: 0
-
-          // Use "select" for the first subtitle unless disabled by default, "auto" for others
-          val disableByDefault = subtitlesPreferences.disableSubtitlesByDefault.get()
-          val flag = if (index == 0 && !disableByDefault) "select" else "auto"
-          MPVLib.command("sub-add", proxyUrl, flag)
-
-          // Set the title for the newly added subtitle track
-          val trackCountAfter = MPVLib.getPropertyInt("track-list/count") ?: 0
-          if (trackCountAfter > trackCountBefore) {
-            val newTrackIndex = trackCountAfter - 1
-            runCatching {
-              MPVLib.setPropertyString("track-list/$newTrackIndex/title", displayName)
-            }
-            Log.d(TAG, "Loaded network subtitle: '$displayName' (track $newTrackIndex) via proxy (flag=$flag)")
-          } else {
-            Log.d(TAG, "Loaded network subtitle: '$displayName' via proxy (flag=$flag)")
-          }
-        } catch (e: Exception) {
-          Log.e(TAG, "Failed to load subtitle ${subtitle.name}: ${e.message}", e)
-        }
-      }
-    } catch (e: Exception) {
-      Log.e(TAG, "Error autoloading network subtitles", e)
     }
   }
 

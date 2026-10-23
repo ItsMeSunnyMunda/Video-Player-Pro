@@ -623,20 +623,6 @@ val DatabaseModule =
     // MediaFileRepository is a singleton object - no DI needed
 
     single {
-      get<MpvExDatabase>().networkConnectionDao()
-    }
-
-    single {
-      get<MpvExDatabase>().shortsMediaDao()
-    }
-
-    single {
-      xyz.mpv.rex.repository.NetworkRepository(
-        dao = get(),
-      )
-    }
-
-    single {
       PlaylistRepository(
         playlistDao = get<MpvExDatabase>().playlistDao(),
       )

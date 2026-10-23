@@ -71,40 +71,11 @@ fun VerticalSlider(
 
   // Read Toggle for Bounce Animation from Preferences
   val appearancePrefs = koinInject<AppearancePreferences>()
-  val enableBounceAnimation by appearancePrefs.enableBounceAnimation.collectAsState()
   val enableGlass by appearancePrefs.enableGlassPlayerControls.collectAsState()
 
   val matchTheme by appearancePrefs.matchPlayerControlsToTheme.collectAsState()
 
-  val trackWidthAnim = remember { Animatable(22f) }
-
-  // Listen for changes to the interaction state (touching vs. released)
-  LaunchedEffect(isActive, enableBounceAnimation) {
-    if (!enableBounceAnimation) {
-      trackWidthAnim.snapTo(22f)
-      return@LaunchedEffect
-    }
-    if (isActive) {
-      trackWidthAnim.animateTo(
-        targetValue = 32f,
-        animationSpec = spring(
-          dampingRatio = Spring.DampingRatioNoBouncy,
-          stiffness = Spring.StiffnessMedium
-        )
-      )
-    } else {
-      kotlinx.coroutines.delay(150)
-      trackWidthAnim.animateTo(
-        targetValue = 22f,
-        animationSpec = spring(
-          dampingRatio = 0.4f,
-          stiffness = Spring.StiffnessLow
-        )
-      )
-    }
-  }
-
-  val trackWidth = trackWidthAnim.value.dp
+  val trackWidth = 22.dp
 
   val trackModifier = if (enableGlass) {
     Modifier.glassSurface(
@@ -193,38 +164,9 @@ fun VerticalSlider(
 
   // Read Toggle for Bounce Animation from Preferences
   val appearancePrefs = koinInject<AppearancePreferences>()
-  val enableBounceAnimation by appearancePrefs.enableBounceAnimation.collectAsState()
   val enableGlass by appearancePrefs.enableGlassPlayerControls.collectAsState()
 
-  val trackWidthAnim = remember { Animatable(22f) }
-
-  // Listen for changes to the interaction state (touching vs. released)
-  LaunchedEffect(isActive, enableBounceAnimation) {
-    if (!enableBounceAnimation) {
-      trackWidthAnim.snapTo(22f)
-      return@LaunchedEffect
-    }
-    if (isActive) {
-      trackWidthAnim.animateTo(
-        targetValue = 32f,
-        animationSpec = spring(
-          dampingRatio = Spring.DampingRatioNoBouncy,
-          stiffness = Spring.StiffnessMedium
-        )
-      )
-    } else {
-      kotlinx.coroutines.delay(150)
-      trackWidthAnim.animateTo(
-        targetValue = 22f,
-        animationSpec = spring(
-          dampingRatio = 0.4f,
-          stiffness = Spring.StiffnessLow
-        )
-      )
-    }
-  }
-
-  val trackWidth = trackWidthAnim.value.dp
+  val trackWidth = 22.dp
 
   val trackModifier = if (enableGlass) {
     Modifier.glassSurface(
@@ -386,10 +328,10 @@ fun BrightnessSlider(
 @Composable
 fun VolumeSlider(
   volume: Int,
-  mpvVolume: Int,
   range: ClosedRange<Int>,
-  boostRange: ClosedRange<Int>?,
   modifier: Modifier = Modifier,
+  mpvVolume: Int = 100,
+  boostRange: ClosedRange<Int>? = null,
   displayAsPercentage: Boolean = false,
   isActive: Boolean = false
 ) {
@@ -453,17 +395,16 @@ fun VolumeSlider(
       horizontalAlignment = Alignment.CenterHorizontally,
       verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.smaller),
     ) {
-      val boostVolume = mpvVolume - 100
       Text(
-        getVolumeSliderText(volume, mpvVolume, boostVolume, percentage, displayAsPercentage),
+        getVolumeSliderText(volume, 100, 0, percentage, displayAsPercentage),
         style = MaterialTheme.typography.bodySmall,
         textAlign = TextAlign.Center,
       )
       VerticalSlider(
         if (displayAsPercentage) percentage else volume,
         if (displayAsPercentage) 0..100 else range,
-        overflowValue = boostVolume,
-        overflowRange = boostRange,
+        overflowValue = null,
+        overflowRange = null,
         isActive = isActive
       )
       Icon(
@@ -481,37 +422,10 @@ fun VolumeSlider(
 }
 
 val getVolumeSliderText: @Composable (Int, Int, Int, Int, Boolean) -> String =
-  { volume, mpvVolume, boostVolume, percentage, displayAsPercentage ->
-    when {
-      mpvVolume == 100 ->
-        if (displayAsPercentage) {
-          "$percentage"
-        } else {
-          "$volume"
-        }
-
-      mpvVolume > 100 -> {
-        if (displayAsPercentage) {
-          "${percentage + boostVolume}"
-        } else {
-          stringResource(R.string.volume_slider_absolute_value, volume + boostVolume)
-        }
-      }
-
-      mpvVolume < 100 -> {
-        if (displayAsPercentage) {
-          "${percentage + boostVolume}"
-        } else {
-          stringResource(R.string.volume_slider_absolute_value, volume + boostVolume)
-        }
-      }
-
-      else -> {
-        if (displayAsPercentage) {
-          "$percentage"
-        } else {
-          "$volume"
-        }
-      }
+  { volume, _, _, percentage, displayAsPercentage ->
+    if (displayAsPercentage) {
+      "$percentage"
+    } else {
+      "$volume"
     }
   }

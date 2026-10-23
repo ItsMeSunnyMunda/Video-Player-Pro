@@ -11,10 +11,6 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import xyz.mpv.rex.database.dao.NetworkConnectionDao
-import xyz.mpv.rex.domain.network.NetworkConnection
-import xyz.mpv.rex.domain.network.NetworkProtocol
-import xyz.mpv.rex.repository.NetworkRepository
 
 class ExternalPlaylistTest {
 
@@ -91,82 +87,5 @@ class ExternalPlaylistTest {
     assertNotNull(playlist)
     assertEquals(listOf("video1.mp4", "video2.mp4"), playlist!!.titles)
     assertEquals(0, playlist.initialIndex)
-  }
-
-  @Test
-  fun `resolveNetworkConnection creates transient connection with embedded credentials`() = runBlocking {
-    val smbPath = FolderPlaylistOps.parseSmbPath("smb://alice:secret123@192.168.1.50:4455/share/folder/file.mkv")
-    assertNotNull(smbPath)
-
-    val connection = FolderPlaylistOps.resolveNetworkConnection(smbPath!!)
-    assertEquals("192.168.1.50", connection.host)
-    assertEquals(4455, connection.port)
-    assertEquals("alice", connection.username)
-    assertEquals("secret123", connection.password)
-    assertEquals("share", connection.path)
-    assertEquals(false, connection.isAnonymous)
-  }
-
-  @Test
-  fun `resolveNetworkConnection creates guest connection when no credentials or saved connection`() = runBlocking {
-    val smbPath = FolderPlaylistOps.parseSmbPath("smb://192.168.1.99/public_share/video.mp4")
-    assertNotNull(smbPath)
-
-    val dao = mockk<NetworkConnectionDao>()
-    val repository = NetworkRepository(dao)
-    every { runBlocking { dao.getAllConnectionsList() } } returns emptyList()
-
-    val connection = FolderPlaylistOps.resolveNetworkConnection(smbPath!!, repository)
-    assertEquals("192.168.1.99", connection.host)
-    assertEquals(445, connection.port)
-    assertEquals(true, connection.isAnonymous)
-    assertEquals("public_share", connection.path)
-  }
-
-  @Test
-  fun `findSmbConnection matches case-insensitively and root connections to shares`() = runBlocking {
-    val dao = mockk<NetworkConnectionDao>()
-    val repository = NetworkRepository(dao)
-
-    val rootConnection = NetworkConnection(
-      id = 10,
-      name = "NAS Root",
-      protocol = NetworkProtocol.SMB,
-      host = "MYNAS.LOCAL",
-      port = 445,
-      username = "user",
-      password = "pwd",
-      path = "/",
-    )
-
-    every { runBlocking { dao.getAllConnectionsList() } } returns listOf(rootConnection)
-
-    val matched = repository.findSmbConnection("mynas.local", "movies")
-    assertNotNull(matched)
-    assertEquals(10L, matched!!.id)
-    assertEquals("movies", matched.path)
-  }
-
-  @Test
-  fun `findSmbConnection matches IPv6 bracketed hosts`() = runBlocking {
-    val dao = mockk<NetworkConnectionDao>()
-    val repository = NetworkRepository(dao)
-
-    val ipv6Connection = NetworkConnection(
-      id = 20,
-      name = "IPv6 Server",
-      protocol = NetworkProtocol.SMB,
-      host = "[fe80::1]:445",
-      port = 445,
-      username = "user",
-      password = "pwd",
-      path = "shared",
-    )
-
-    every { runBlocking { dao.getAllConnectionsList() } } returns listOf(ipv6Connection)
-
-    val matched = repository.findSmbConnection("fe80::1", "shared")
-    assertNotNull(matched)
-    assertEquals(20L, matched!!.id)
   }
 }

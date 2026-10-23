@@ -138,7 +138,6 @@ enum class Sheets {
   None,
   PlaybackSpeed,
   SubtitleTracks,
-  OnlineSubtitleSearch,
   AudioTracks,
   Chapters,
   Decoders,
@@ -146,11 +145,7 @@ enum class Sheets {
   VideoZoom,
   AspectRatios,
   Playlist,
-  FrameNavigation,
   CustomSkipDuration,
-  SleepTimer,
-  ClipExport,
-  VideoQuality,
 }
 
 enum class Panels {

@@ -53,7 +53,7 @@ class PlayerSystemUiController(
       windowInsetsController.apply {
         hide(WindowInsetsCompat.Type.statusBars())
         hide(WindowInsetsCompat.Type.navigationBars())
-        systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_DEFAULT
       }
     } catch (e: Exception) {
       Log.e(TAG, "Failed to setup system UI insets", e)
@@ -63,8 +63,9 @@ class PlayerSystemUiController(
     // LOW_PROFILE causes only icons to show without background
     @Suppress("DEPRECATION")
     rootViewProvider().systemUiVisibility =
-      View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or
-        View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
+      View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
+        View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
+        View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
         View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
         if (playerPreferences.showSystemStatusBar.get()) 0 else View.SYSTEM_UI_FLAG_LOW_PROFILE
   }

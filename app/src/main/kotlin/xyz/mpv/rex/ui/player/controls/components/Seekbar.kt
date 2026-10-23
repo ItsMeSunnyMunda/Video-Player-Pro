@@ -111,43 +111,11 @@ fun SeekbarWithTimers(
 
   // Read Toggle for Bounce Animation from Preferences
   val appearancePrefs = koinInject<AppearancePreferences>()
-  val enableBounceAnimation by appearancePrefs.enableBounceAnimation.collectAsState()
   val enableGlassPlayerControls by appearancePrefs.enableGlassPlayerControls.collectAsState()
   val enableGlassSeekbar by appearancePrefs.enableGlassSeekbarBackground.collectAsState()
   val isGlassActive = enableGlassPlayerControls && enableGlassSeekbar
 
-  // Determine if the seekbar should be actively squeezed
-  val shouldSqueeze = isUserInteracting || isGestureSeeking
-  
-  val squeezeAnim = remember { Animatable(1f) }
 
-  // Trigger animation whenever the interaction state change
-  LaunchedEffect(shouldSqueeze, enableBounceAnimation) {
-    if (!enableBounceAnimation) {
-      squeezeAnim.snapTo(1f)
-      return@LaunchedEffect
-    }
-    if (shouldSqueeze) {
-      squeezeAnim.animateTo(
-        targetValue = 0.75f,
-        animationSpec = spring(
-          dampingRatio = Spring.DampingRatioNoBouncy,
-          stiffness = Spring.StiffnessMedium
-        )
-      )
-    } else {
-      kotlinx.coroutines.delay(150)
-      squeezeAnim.animateTo(
-        targetValue = 1f,
-        animationSpec = spring(
-          dampingRatio = 0.4f,
-          stiffness = Spring.StiffnessLow
-        )
-      )
-    }
-  }
-
-  val squeezeScale = squeezeAnim.value
 
   // Only animate position updates when user is not interacting
   // Using snapshotFlow to avoid registering a state read in this composable's scope
@@ -242,7 +210,7 @@ fun SeekbarWithTimers(
           .weight(1f)
           .fillMaxHeight()
           .graphicsLayer {
-            scaleY = squeezeScale
+            // scaleY = 1f
           },
       contentAlignment = Alignment.Center,
     ) {
@@ -372,7 +340,6 @@ private fun SquigglySeekbar(
   val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
 
   val gesturePreferences = koinInject<GesturePreferences>()
-  val preventSeekbarTap by gesturePreferences.preventSeekbarTap.collectAsState()
   val useRelativeSeeking by gesturePreferences.useRelativeSeeking.collectAsState()
 
   // Manual Interaction State Tracking
@@ -391,55 +358,17 @@ private fun SquigglySeekbar(
 
   val scope = rememberCoroutineScope()
 
-  // Wave parameters
+  // Straight high-performance bar (wavy animation removed for ultra-light UI)
   val waveLength = 80f
-  val lineAmplitude = if (useWavySeekbar) 6f else 0f
-  val phaseSpeed = 10f // px per second
+  val lineAmplitude = 0f
+  val phaseSpeed = 0f
   val transitionPeriods = 1.5f
   val minWaveEndpoint = 0f
   val matchedWaveEndpoint = 1f
-  val transitionEnabled = true
+  val transitionEnabled = false
 
-  // Animate height fraction based on paused state and scrubbing state
-  LaunchedEffect(isPaused, isScrubbing, useWavySeekbar) {
-    if (!useWavySeekbar) {
-      heightFraction = 0f
-      return@LaunchedEffect
-    }
-
-    val shouldFlatten = isPaused || isScrubbing
-    val targetHeight = if (shouldFlatten) 0f else 1f
-    val duration = if (shouldFlatten) 550 else 800
-    val startDelay = if (shouldFlatten) 0L else 60L
-
-    kotlinx.coroutines.delay(startDelay)
-
-    val animator = Animatable(heightFraction)
-    animator.animateTo(
-      targetValue = targetHeight,
-      animationSpec =
-        tween(
-          durationMillis = duration,
-          easing = LinearEasing,
-        ),
-    ) {
-      heightFraction = value
-    }
-  }
-
-  // Animate wave movement only when not paused
-  LaunchedEffect(isPaused, useWavySeekbar) {
-    if (isPaused || !useWavySeekbar) return@LaunchedEffect
-
-    var lastFrameTime = System.currentTimeMillis()
-    while (isActive) {
-      val currentTime = System.currentTimeMillis()
-      val deltaTime = (currentTime - lastFrameTime) / 1000f
-      phaseOffset += deltaTime * phaseSpeed
-      phaseOffset %= waveLength
-      lastFrameTime = currentTime
-      kotlinx.coroutines.delay(33) // Target ~30 FPS
-    }
+  LaunchedEffect(Unit) {
+    heightFraction = 0f
   }
 
   val currentPosition by rememberUpdatedState(position)
@@ -458,7 +387,6 @@ private fun SquigglySeekbar(
                 isPressed = false
             },
             onTap = { offset ->
-                if (preventSeekbarTap) return@detectTapGestures
                 val newPosition = (offset.x / size.width) * currentDuration
                 onSeek(newPosition.coerceIn(0f, currentDuration))
                 onSeekFinished()
@@ -802,8 +730,7 @@ fun StandardSeekbar(
     val thumbShape = if (isThick) RoundedCornerShape(thumbWidth / 2) else CircleShape
 
     val gesturePreferences = koinInject<GesturePreferences>()
-    val preventSeekbarTap by gesturePreferences.preventSeekbarTap.collectAsState()
-    val useRelativeSeeking by gesturePreferences.useRelativeSeeking.collectAsState()
+      val useRelativeSeeking by gesturePreferences.useRelativeSeeking.collectAsState()
 
     val currentPosition by rememberUpdatedState(position)
     val currentDuration by rememberUpdatedState(duration)
@@ -830,8 +757,7 @@ fun StandardSeekbar(
             .pointerInput(Unit) {
                 detectTapGestures(
                     onTap = { offset ->
-                        if (preventSeekbarTap) return@detectTapGestures
-                        val newPosition = (offset.x / size.width) * currentDuration
+                                val newPosition = (offset.x / size.width) * currentDuration
                         onSeek(newPosition.coerceIn(0f, currentDuration))
                         onSeekFinished()
                     }

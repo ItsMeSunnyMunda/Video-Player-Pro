@@ -63,7 +63,6 @@ class SearchablePreferenceTest {
         R.string.pref_layout_more_sheet_controls_title to "Buttons in Controls Tab",
         R.string.pref_seekbar_style_header to "Seekbar Style",
         R.string.pref_controls_layout_below_seekbar_title to "Bottom controls below seekbar",
-        R.string.pref_appearance_enable_bounce_animation_title to "Enable bouncy animations",
         R.string.pref_appearance_show_controls_on_play_title to "Show controls on play start",
         R.string.pref_appearance_player_gradient_opacity_title to "Player gradient opacity",
         // Gestures
@@ -143,64 +142,6 @@ class SearchablePreferenceTest {
     }
 
     @Test
-    fun `searching RexShorts finds shorts preferences`() {
-        val results = SearchablePreferences.search("Shorts", stringResolver)
-        assertFalse(results.isEmpty())
-
-        val foundEnableShorts = results.any { it.titleRes == R.string.pref_enable_rexshorts }
-        val foundAutoSwipe = results.any { it.titleRes == R.string.pref_auto_swipe_shorts }
-        val foundShortsCategory = results.any { it.titleRes == R.string.pref_category_rexshorts_settings }
-
-        assertTrue("Expected pref_enable_rexshorts in results", foundEnableShorts)
-        assertTrue("Expected pref_auto_swipe_shorts in results", foundAutoSwipe)
-        assertTrue("Expected RexShorts category in results", foundShortsCategory)
-    }
-
-    @Test
-    fun `searching Auto swipe finds auto swipe shorts preference`() {
-        val results = SearchablePreferences.search("Auto swipe", stringResolver)
-        assertFalse(results.isEmpty())
-
-        val first = results.first()
-        assertEquals(R.string.pref_auto_swipe_shorts, first.titleRes)
-        assertEquals(ShortsPreferencesScreen, first.screen)
-    }
-
-    @Test
-    fun `searching yt-dlp finds extractor and network preferences`() {
-        val results = SearchablePreferences.search("yt-dlp", stringResolver)
-        assertFalse(results.isEmpty())
-
-        val titles = results.map { it.title }
-        assertTrue("Expected yt-dlp in results", titles.contains("yt-dlp"))
-        assertTrue("Expected Resolution Preference in results", titles.contains("Resolution Preference"))
-        assertTrue("Expected Geo-Bypass in results", titles.contains("Geo-Bypass"))
-        assertTrue("Expected Prefer Nightly Channel in results", titles.contains("Prefer Nightly Channel"))
-    }
-
-    @Test
-    fun `searching resolution finds resolution preference`() {
-        val results = SearchablePreferences.search("Resolution", stringResolver)
-        assertFalse(results.isEmpty())
-
-        val first = results.first()
-        assertEquals("Resolution Preference", first.title)
-        assertEquals(YtdlSettingsScreen, first.screen)
-        assertEquals(2, first.targetIndex)
-    }
-
-    @Test
-    fun `searching proxy finds proxy preference`() {
-        val results = SearchablePreferences.search("proxy", stringResolver)
-        assertFalse(results.isEmpty())
-
-        val first = results.first()
-        assertEquals("Proxy", first.title)
-        assertEquals(YtdlSettingsScreen, first.screen)
-        assertEquals(6, first.targetIndex)
-    }
-
-    @Test
     fun `searching Jellyfin finds jellyfin integration preference`() {
         val results = SearchablePreferences.search("Jellyfin", stringResolver)
         assertFalse(results.isEmpty())
@@ -244,16 +185,6 @@ class SearchablePreferenceTest {
     }
 
     @Test
-    fun `searching encoding finds subtitle encoding preference`() {
-        val results = SearchablePreferences.search("encoding", stringResolver)
-        assertFalse(results.isEmpty())
-
-        val match = results.firstOrNull { it.titleRes == R.string.pref_subtitles_encoding_title }
-        assertNotNull("Expected subtitle encoding preference in results", match)
-        assertEquals(SubtitlesPreferencesScreen, match?.screen)
-    }
-
-    @Test
     fun `searching Decoder profile finds decoder profile preference`() {
         val results = SearchablePreferences.search("Decoder profile", stringResolver)
         assertFalse(results.isEmpty())
@@ -263,30 +194,6 @@ class SearchablePreferenceTest {
         assertEquals(DecoderPreferencesScreen, match?.screen)
         assertEquals(1, match?.targetIndex)
         assertEquals("Decoder", match?.category)
-    }
-
-    @Test
-    fun `searching Hearing impaired finds hearing-impaired friendly preference`() {
-        val results = SearchablePreferences.search("hearing impaired", stringResolver)
-        assertFalse(results.isEmpty())
-
-        val match = results.firstOrNull { it.title == "Hearing-impaired friendly" }
-        assertNotNull("Expected Hearing-impaired friendly preference in results", match)
-        assertEquals(SubtitlesPreferencesScreen, match?.screen)
-        assertEquals(3, match?.targetIndex)
-        assertEquals("Subtitles", match?.category)
-    }
-
-    @Test
-    fun `searching Advanced Search Filters finds advanced search filters preference`() {
-        val results = SearchablePreferences.search("Advanced Search Filters", stringResolver)
-        assertFalse(results.isEmpty())
-
-        val match = results.firstOrNull { it.title == "Advanced Search Filters" }
-        assertNotNull("Expected Advanced Search Filters preference in results", match)
-        assertEquals(SubtitlesPreferencesScreen, match?.screen)
-        assertEquals(3, match?.targetIndex)
-        assertEquals("Subtitles", match?.category)
     }
 
     @Test
@@ -335,13 +242,6 @@ class SearchablePreferenceTest {
         assertTrue(
             "Expected auto resume playback in results",
             autoResumeResults.any { it.titleRes == R.string.pref_player_auto_resume_on_ask_title }
-        )
-
-        val rexShortsResults = SearchablePreferences.search("rex-shorts", stringResolver)
-        assertFalse("Expected results for rex-shorts", rexShortsResults.isEmpty())
-        assertTrue(
-            "Expected RexShorts in results",
-            rexShortsResults.any { it.titleRes == R.string.pref_category_rexshorts_settings }
         )
     }
 

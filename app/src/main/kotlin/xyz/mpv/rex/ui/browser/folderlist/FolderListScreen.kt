@@ -50,25 +50,19 @@ import androidx.compose.material.icons.filled.ViewModule
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.FloatingActionButtonMenu
-import androidx.compose.material3.FloatingActionButtonMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Scaffold
+import xyz.mpv.rex.domain.recentlyplayed.repository.RecentlyPlayedRepository
+import xyz.mpv.rex.ui.browser.components.FabPlaybackResolver
+import xyz.mpv.rex.ui.browser.components.BindResumeFab
 import androidx.compose.material3.Surface
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.SearchBar
 import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.ToggleFloatingActionButton
-import androidx.compose.material3.ToggleFloatingActionButtonDefaults.animateIcon
-import androidx.compose.material3.TooltipAnchorPosition
-import androidx.compose.material3.TooltipBox
-import androidx.compose.material3.TooltipDefaults
-import androidx.compose.material3.animateFloatingActionButton
-import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -214,7 +208,6 @@ object FolderListScreen : Screen {
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
     val folderGridColumns = if (isLandscape) folderGridColumnsLandscape else folderGridColumnsPortrait
-    val showSubtitleIndicator by browserPreferences.showSubtitleIndicator.collectAsState()
     val tapThumbnailToSelect by gesturePreferences.tapThumbnailToSelect.collectAsState()
     val enableRecentlyPlayed by advancedPreferences.enableRecentlyPlayed.collectAsState()
     val showAudioFiles by browserPreferences.showAudioFiles.collectAsState()
@@ -327,9 +320,29 @@ object FolderListScreen : Screen {
     var renameDialogOpen by rememberSaveable { mutableStateOf(false) }
     var folderSelectionInfo by remember { mutableStateOf<Triple<Int, Long, Long>?>(null) }
     val operationProgress by CopyPasteOps.operationProgress.collectAsState()
+    val includeNoMediaContent by browserPreferences.includeNoMediaContent.collectAsState()
+    val recentlyPlayedRepo = koinInject<RecentlyPlayedRepository>()
+    val recentlyPlayedList by remember(recentlyPlayedRepo) {
+      recentlyPlayedRepo.observeRecentlyPlayed(limit = 200)
+    }.collectAsState(initial = xyz.mpv.rex.ui.browser.components.GlobalFabState.cachedRecentlyPlayed)
+
+    androidx.compose.runtime.SideEffect {
+      if (recentlyPlayedList.isNotEmpty()) {
+        xyz.mpv.rex.ui.browser.components.GlobalFabState.cachedRecentlyPlayed = recentlyPlayedList
+      }
+    }
+
+    val fabTargetFilePath = remember(recentlyPlayedList, sortedFolders, includeNoMediaContent) {
+      FabPlaybackResolver.resolvePlayableFile(
+        currentFolderPath = null,
+        orderedSubfolderPaths = sortedFolders.map { it.path },
+        recentlyPlayed = recentlyPlayedList,
+        includeNoMedia = includeNoMediaContent,
+      )
+    }
+
     // FAB state
     val isFabVisible = remember { mutableStateOf(true) }
-    val isFabExpanded = remember { mutableStateOf(false) }
 
     // File picker
     val filePicker = rememberLauncherForActivityResult(
@@ -356,6 +369,14 @@ object FolderListScreen : Screen {
         viewModel.deleteFolders(folders)
       },
       onOperationComplete = { viewModel.refresh() },
+    )
+
+    BindResumeFab(
+      targetFilePath = fabTargetFilePath,
+      visible = !hidePlayFabShowInHeader && !selectionManager.isInSelectionMode && isFabVisible.value && !xyz.mpv.rex.ui.browser.MainScreen.getPermissionDeniedState(),
+      onPlay = { path ->
+        MediaUtils.playFile(path, context, "recently_played_button")
+      },
     )
 
     val treePickerLauncher = rememberLauncherForActivityResult(
@@ -412,10 +433,9 @@ object FolderListScreen : Screen {
     val isGridScrolled = remember { derivedStateOf { gridState.firstVisibleItemIndex > 0 || gridState.firstVisibleItemScrollOffset > 0 } }
     val isScrolled = if (mediaLayoutMode == MediaLayoutMode.GRID) isGridScrolled.value else isListScrolled.value
     
-    val shouldHandleBack = selectionManager.isInSelectionMode || isFabExpanded.value || isScrolled
+    val shouldHandleBack = selectionManager.isInSelectionMode || isScrolled
     androidx.activity.compose.BackHandler(enabled = shouldHandleBack) {
       when {
-        isFabExpanded.value -> isFabExpanded.value = false
         selectionManager.isInSelectionMode -> selectionManager.clear()
         isScrolled -> {
           coroutineScope.launch {
@@ -434,8 +454,8 @@ object FolderListScreen : Screen {
       listState = listState,
       gridState = if (mediaLayoutMode == MediaLayoutMode.GRID) gridState else null,
       isFabVisible = isFabVisible,
-      expanded = isFabExpanded.value,
-      onExpandedChange = { isFabExpanded.value = it },
+      expanded = false,
+      onExpandedChange = {},
     )
 
     Scaffold(
@@ -450,17 +470,9 @@ object FolderListScreen : Screen {
           onCancelSelection = { selectionManager.clear() },
           onSortClick = { sortDialogOpen.value = true },
           onSearchClick = { backstack.add(xyz.mpv.rex.ui.browser.search.SearchScreen()) },
-            normalPlayClick = if (hidePlayFabShowInHeader) {
+            normalPlayClick = if (hidePlayFabShowInHeader && fabTargetFilePath != null) {
               {
-                coroutineScope.launch {
-                  val recentlyPlayedVideos = RecentlyPlayedOps.getRecentlyPlayed(limit = 1)
-                  val lastPlayed = recentlyPlayedVideos.firstOrNull()
-                  if (lastPlayed != null) {
-                    MediaUtils.playFile(lastPlayed.filePath, context, "recently_played_button")
-                  } else {
-                    Toast.makeText(context, context.getString(R.string.no_recently_played_videos), Toast.LENGTH_SHORT).show()
-                  }
-                }
+                MediaUtils.playFile(fabTargetFilePath, context, "recently_played_button")
               }
             } else null,
             onSettingsClick = {
@@ -549,113 +561,7 @@ object FolderListScreen : Screen {
             ),
           )
         },
-      floatingActionButton = {
-        if (!hidePlayFabShowInHeader) {
-        FloatingActionButtonMenu(
-          modifier = Modifier.padding(bottom = navigationBarHeight + 8.dp),
-          expanded = isFabExpanded.value,
-          button = {
-            TooltipBox(
-              positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
-                if (isFabExpanded.value) {
-                  TooltipAnchorPosition.Start
-                } else {
-                  TooltipAnchorPosition.Above
-                }
-              ),
-              tooltip = { PlainTooltip { Text(stringResource(R.string.toggle_menu)) } },
-              state = rememberTooltipState(),
-            ) {
-            Box(
-              modifier = Modifier.animateFloatingActionButton(
-                visible = !selectionManager.isInSelectionMode && isFabVisible.value && !xyz.mpv.rex.ui.browser.MainScreen.getPermissionDeniedState(),
-                alignment = Alignment.BottomEnd,
-              )
-            ) {
-              ToggleFloatingActionButton(
-                checked = isFabExpanded.value,
-                onCheckedChange = { /* handled by overlay */ },
-              ) {
-                val imageVector by remember {
-                  derivedStateOf {
-                    if (checkedProgress > 0.5f) Icons.Filled.Close else Icons.Filled.PlayArrow
-                  }
-                }
-                Icon(
-                  painter = rememberVectorPainter(imageVector),
-                  contentDescription = null,
-                  modifier = Modifier.animateIcon({ checkedProgress }),
-                )
-              }
-
-              // Overlay to capture clicks and long-presses without internal interference
-              Box(
-                modifier = Modifier
-                  .matchParentSize()
-                  .pointerInput(Unit) {
-                    detectTapGestures(
-                      onTap = {
-                        if (isFabExpanded.value) {
-                          isFabExpanded.value = false
-                        } else {
-                          coroutineScope.launch {
-                            val recentlyPlayedVideos = RecentlyPlayedOps.getRecentlyPlayed(limit = 1)
-                            val lastPlayed = recentlyPlayedVideos.firstOrNull()
-                            if (lastPlayed != null) {
-                              MediaUtils.playFile(lastPlayed.filePath, context, "recently_played_button")
-                            } else {
-                              Toast.makeText(context, context.getString(R.string.no_recently_played_videos), Toast.LENGTH_SHORT).show()
-                            }
-                          }
-                        }
-                      },
-                      onLongPress = {
-                        if (!isFabExpanded.value) {
-                          isFabExpanded.value = true
-                        }
-                      }
-                    )
-                  }
-              )
-            }
-            }
-          },
-        ) {
-          FloatingActionButtonMenuItem(
-            onClick = {
-              isFabExpanded.value = false
-              filePicker.launch(arrayOf("video/*"))
-            },
-            icon = { Icon(Icons.Filled.FileOpen, contentDescription = null) },
-            text = { Text(text = "Open File") },
-          )
-
-          FloatingActionButtonMenuItem(
-            onClick = {
-              isFabExpanded.value = false
-              coroutineScope.launch {
-                val recentlyPlayedVideos = RecentlyPlayedOps.getRecentlyPlayed(limit = 1)
-                val lastPlayed = recentlyPlayedVideos.firstOrNull()
-                if (lastPlayed != null) {
-                  MediaUtils.playFile(lastPlayed.filePath, context, "recently_played_button")
-                }
-              }
-            },
-            icon = { Icon(Icons.Filled.History, contentDescription = null) },
-            text = { Text(text = "Recently Played") },
-          )
-
-          FloatingActionButtonMenuItem(
-            onClick = {
-              isFabExpanded.value = false
-              showLinkDialog.value = true
-            },
-            icon = { Icon(Icons.Filled.Link, contentDescription = null) },
-            text = { Text(text = "Open Link") },
-          )
-        }
-        }
-      },
+      floatingActionButton = {},
     ) { padding ->
       Box(modifier = Modifier.padding(top = padding.calculateTopPadding()).fillMaxSize()) {
         when (permissionState.status) {
@@ -685,7 +591,7 @@ object FolderListScreen : Screen {
                 if (selectionManager.isInSelectionMode) {
                   selectionManager.toggle(folder)
                 } else {
-                  backstack.add(xyz.mpv.rex.ui.browser.videolist.VideoListScreen(folder.bucketId, folder.name))
+                  backstack.add(xyz.mpv.rex.ui.browser.videolist.VideoListScreen(folder.bucketId, folder.name, folder.path))
                 }
               },
               onFolderLongClick = { folder ->

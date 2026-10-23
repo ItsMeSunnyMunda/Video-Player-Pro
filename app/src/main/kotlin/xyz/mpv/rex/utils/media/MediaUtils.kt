@@ -9,7 +9,6 @@ import androidx.core.net.toUri
 import xyz.mpv.rex.BuildConfig
 import xyz.mpv.rex.domain.media.model.Video
 import xyz.mpv.rex.ui.player.PlayerActivity
-import xyz.mpv.rex.ui.player.HeadlessPlaybackController
 import xyz.mpv.rex.preferences.PlayerPreferences
 import xyz.mpv.rex.utils.history.RecentlyPlayedOps
 import xyz.mpv.rex.database.repository.VideoMetadataCacheRepository
@@ -46,7 +45,6 @@ object MediaUtils : KoinComponent {
   private val metadataCache: VideoMetadataCacheRepository by inject()
   private val playbackStateRepository: PlaybackStateRepository by inject()
   private val playerPreferences: PlayerPreferences by inject()
-  private val headlessPlaybackController: HeadlessPlaybackController by inject()
 
   /**
    * Play video content from any source.
@@ -178,33 +176,6 @@ object MediaUtils : KoinComponent {
       else -> false
     }
 
-    // Direct mini player mode: start headless playback in the bottom bar for audio files
-    if (playerPreferences.playInMiniPlayerDirectly.get() && isAudio) {
-      intent.data?.let { uri ->
-        val title = intent.getStringExtra("title") ?: deriveTitle(uri, source)
-        val path = if (uri.scheme == "file") uri.path else (source as? Video)?.path
-        var uris = listOf(uri)
-        var startIndex = 0
-
-        if (path != null && playerPreferences.playlistMode.get()) {
-          val playlistResult = kotlinx.coroutines.runBlocking {
-            if (launchSource == "media_library_list") {
-              FolderPlaylistOps.generateMediaLibraryPlaylist(context, path)
-            } else {
-              FolderPlaylistOps.generateFolderPlaylist(context, path, launchSource)
-            }
-          }
-          if (playlistResult != null) {
-            uris = playlistResult.first
-            startIndex = playlistResult.second
-          }
-        }
-
-        startHeadless(uris, startIndex, title, launchSource = launchSource)
-        return
-      }
-    }
-
     context.startActivity(
       intent,
       ActivityOptions.makeCustomAnimation(context, android.R.anim.fade_in, 0).toBundle()
@@ -262,78 +233,21 @@ object MediaUtils : KoinComponent {
     // Pass title for the first video
     intent.putExtra("title", firstVideo.displayName)
 
-    // Direct mini player mode: start headless playback with the full playlist for audio files.
-    if (playerPreferences.playInMiniPlayerDirectly.get() && firstVideo.isAudio && !xyz.mpv.rex.utils.storage.FileTypeUtils.isVideoFile(File(firstVideo.path))) {
-      val uris = videos.map { video ->
-        if (video.uri.scheme == null &&
-          (video.path.startsWith("/") || video.path.startsWith("file://"))
-        ) {
-          val path = if (video.path.startsWith("file://")) video.path.removePrefix("file://") else video.path
-          Uri.fromFile(File(path))
-        } else {
-          video.uri
-        }
-      }
-      startHeadless(uris, startIndex, firstVideo.displayName, launchSource = launchSource, playlistId = playlistId)
-      return
-    }
-
     context.startActivity(
       intent,
       ActivityOptions.makeCustomAnimation(context, android.R.anim.fade_in, 0).toBundle()
     )
   }
 
-  /**
-   * Explicitly plays the supplied files in the bottom mini player, regardless of media type or
-   * the automatic direct-mini-player preference. The list order is preserved as the playlist.
-   */
   fun playInMiniPlayer(
     videos: List<Video>,
     startIndex: Int = 0,
     launchSource: String? = "mini_player_action",
     playlistId: Int? = null,
   ) {
-    if (videos.isEmpty() || startIndex !in videos.indices) return
-
-    val uris = videos.map { video ->
-      if (video.uri.scheme == null &&
-        (video.path.startsWith("/") || video.path.startsWith("file://"))
-      ) {
-        val path = video.path.removePrefix("file://")
-        Uri.fromFile(File(path))
-      } else {
-        video.uri
-      }
-    }
-    startHeadless(uris, startIndex, videos[startIndex].displayName, launchSource = launchSource, playlistId = playlistId)
-  }
-
-  /**
-   * Starts headless playback in the mini player, resolving the resume position (if any)
-   * for the item at [startIndex] from the saved playback state.
-   */
-  private fun startHeadless(
-    uris: List<Uri>,
-    startIndex: Int,
-    title: String,
-    launchSource: String? = null,
-    playlistId: Int? = null,
-  ) {
-    val resumeSec = kotlinx.coroutines.runBlocking {
-      runCatching {
-        playbackStateRepository.getVideoDataByTitle(title)?.lastPosition ?: 0
-      }.getOrDefault(0)
-    }
-    headlessPlaybackController.startHeadless(
-      uris = uris,
-      startIndex = startIndex,
-      title = title,
-      artist = "",
-      resumePositionSec = resumeSec,
-      launchSource = launchSource ?: "direct_mini_player",
-      playlistId = playlistId,
-    )
+    // Forward directly to standard video playback
+    val context = xyz.mpv.rex.App.instance
+    playPlaylist(videos, startIndex, context, launchSource, playlistId)
   }
 
   private fun deriveTitle(uri: Uri, source: Any): String = when (source) {

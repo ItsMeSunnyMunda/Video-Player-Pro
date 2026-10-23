@@ -343,25 +343,21 @@ data class ControlLayoutEditorScreen(
 }
 
 @Composable
-private fun IconsLegend() {
+fun IconsLegend(modifier: Modifier = Modifier) {
   androidx.compose.material3.Card(
-    modifier = Modifier.fillMaxWidth().padding(top = 24.dp, bottom = 8.dp),
+    modifier = modifier.fillMaxWidth().padding(top = 24.dp, bottom = 8.dp),
     shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
     colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
   ) {
     Column(modifier = Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-      Text(text = stringResource(R.string.control_layout_icons_legend_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+      Column {
+        Text(text = stringResource(R.string.control_layout_icons_legend_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+        Text(text = "What is each icon for?", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+      }
       FlowRow(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         allPlayerButtons.forEach { button ->
           Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.wrapContentWidth()) {
-            if (button == PlayerButton.AB_LOOP) {
-              // "AB" متروك عمداً بدون ترجمة — رمز بصري وظيفي (اختصار A-B loop) مو نص لغوي
-              Box(modifier = Modifier.size(20.dp), contentAlignment = Alignment.Center) {
-                Text(text = "AB", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-              }
-            } else {
-              Icon(imageVector = button.icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp).then(if (button == PlayerButton.VERTICAL_FLIP) Modifier.rotate(90f) else Modifier))
-            }
+            Icon(imageVector = button.icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp).then(if (button == PlayerButton.VERTICAL_FLIP) Modifier.rotate(90f) else Modifier))
             Text(text = xyz.mpv.rex.preferences.getPlayerButtonLabel(button), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurface)
           }
         }

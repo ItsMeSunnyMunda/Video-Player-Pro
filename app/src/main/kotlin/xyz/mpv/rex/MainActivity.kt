@@ -10,6 +10,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -18,6 +20,12 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideIn
 import androidx.compose.animation.slideOut
 import androidx.compose.animation.togetherWith
+import xyz.mpv.rex.ui.browser.components.ResumeFloatingActionButton
+import xyz.mpv.rex.ui.browser.components.GlobalFabState
+import xyz.mpv.rex.ui.browser.videolist.VideoListScreen
+import xyz.mpv.rex.ui.browser.filesystem.FileSystemDirectoryScreen
+import xyz.mpv.rex.ui.browser.recentlyplayed.RecentlyPlayedScreen
+import xyz.mpv.rex.utils.media.MediaUtils
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -44,8 +52,6 @@ import xyz.mpv.rex.ui.theme.DarkMode
 import xyz.mpv.rex.ui.theme.MpvexTheme
 import xyz.mpv.rex.ui.utils.LocalBackStack
 import xyz.mpv.rex.utils.permission.PermissionUtils
-import xyz.mpv.rex.ui.browser.miniplayer.MiniPlayer
-import xyz.mpv.rex.ui.browser.miniplayer.MiniPlayerDefaults
 import xyz.mpv.rex.ui.browser.miniplayer.MiniPlayerStateManager
 import xyz.mpv.rex.ui.browser.LocalNavigationBarHeight
 import xyz.mpv.rex.ui.welcome.WelcomeScreen
@@ -131,22 +137,12 @@ class MainActivity : ComponentActivity() {
     val currentRoute = typedBackstack.lastOrNull()
     val isMainScreen = currentRoute == MainScreen
     val isWelcomeScreen = currentRoute == WelcomeScreen
+    val isBrowserRoute = isMainScreen ||
+        currentRoute is VideoListScreen ||
+        currentRoute is FileSystemDirectoryScreen ||
+        currentRoute is RecentlyPlayedScreen
     
-    val targetBottomPadding = 8.dp
-    val animatedBottomPadding by androidx.compose.animation.core.animateDpAsState(
-      targetValue = targetBottomPadding,
-      animationSpec = tween(220),
-      label = "miniPlayerBottomPadding"
-    )
-
-    val targetMiniPlayerHeight = if (miniPlayerState.isPlaybackActive) MiniPlayerDefaults.CompactHeight else 0.dp
-    val miniPlayerHeight by androidx.compose.animation.core.animateDpAsState(
-      targetValue = targetMiniPlayerHeight,
-      animationSpec = tween(220),
-      label = "miniPlayerHeight"
-    )
-    val navBarHeight = 0.dp
-    val totalNavigationBarHeight = miniPlayerHeight
+    val totalNavigationBarHeight = 0.dp
 
     BackHandler(enabled = isMainScreen || isWelcomeScreen) {
       (context as? Activity)?.moveTaskToBack(true)
@@ -164,48 +160,26 @@ class MainActivity : ComponentActivity() {
           onBack = { typedBackstack.removeLastOrNull() },
           entryProvider = { route -> NavEntry(route) { route.Content() } },
           popTransitionSpec = {
-            (
-              fadeIn(animationSpec = tween(220)) +
-                slideIn(animationSpec = tween(220)) { IntOffset(-it.width / 2, 0) }
-            ) togetherWith (
-                fadeOut(animationSpec = tween(220)) +
-                  slideOut(animationSpec = tween(220)) { IntOffset(it.width / 2, 0) }
-            )
+            EnterTransition.None togetherWith ExitTransition.None
           },
           transitionSpec = {
-            (
-              fadeIn(animationSpec = tween(220)) +
-                slideIn(animationSpec = tween(220)) { IntOffset(it.width / 2, 0) }
-            ) togetherWith (
-                fadeOut(animationSpec = tween(220)) +
-                  slideOut(animationSpec = tween(220)) { IntOffset(-it.width / 2, 0) }
-            )
+            EnterTransition.None togetherWith ExitTransition.None
           },
           predictivePopTransitionSpec = {
-            (
-              fadeIn(animationSpec = tween(220)) +
-                scaleIn(
-                  animationSpec = tween(220, delayMillis = 30),
-                  initialScale = .9f,
-                  TransformOrigin(-1f, .5f),
-                )
-            ) togetherWith (
-                fadeOut(animationSpec = tween(220)) +
-                  scaleOut(
-                    animationSpec = tween(220, delayMillis = 30),
-                    targetScale = .9f,
-                    TransformOrigin(-1f, .5f),
-                  )
-            )
+            EnterTransition.None togetherWith ExitTransition.None
           },
         )
 
-        MiniPlayer(
-          stateManager = miniPlayerStateManager,
+        ResumeFloatingActionButton(
+          targetFilePath = GlobalFabState.targetFilePath,
+          visible = isBrowserRoute && GlobalFabState.isVisible,
           modifier = Modifier
-            .align(Alignment.BottomCenter)
+            .align(Alignment.BottomEnd)
             .navigationBarsPadding()
-            .padding(bottom = animatedBottomPadding)
+            .padding(end = 16.dp, bottom = totalNavigationBarHeight + 16.dp),
+          onPlay = { path ->
+            GlobalFabState.onPlay?.invoke(path) ?: MediaUtils.playFile(path, context, "recently_played_button")
+          },
         )
       }
     }

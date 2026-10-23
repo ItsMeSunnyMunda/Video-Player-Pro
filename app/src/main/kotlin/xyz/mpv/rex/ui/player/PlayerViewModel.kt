@@ -56,12 +56,10 @@ import org.koin.core.component.inject
 import java.io.File
 import xyz.mpv.rex.utils.storage.FileTypeUtils
 import androidx.documentfile.provider.DocumentFile
-import xyz.mpv.rex.domain.ytdl.model.VideoQuality
 import xyz.mpv.rex.preferences.AdvancedPreferences
 import xyz.mpv.rex.ui.browser.miniplayer.MiniPlayerStateManager
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
-import xyz.mpv.rex.ui.player.managers.CustomButtonManager
 import xyz.mpv.rex.ui.player.managers.PlaybackManager
 import xyz.mpv.rex.ui.player.managers.PlayerGestureManager
 import xyz.mpv.rex.ui.player.managers.PlayerSnapshotManager
@@ -143,18 +141,6 @@ class PlayerViewModel(
     scope = viewModelScope
   )
   val historyManager: xyz.mpv.rex.utils.history.HistoryManager get() = _historyManager
-
-  /**
-   * Manager for custom user-defined buttons.
-   */
-  private val _customButtonManager = CustomButtonManager(
-    context = appContext,
-    playerPreferences = playerPreferences,
-    advancedPreferences = advancedPreferences,
-    json = json,
-    scope = viewModelScope
-  )
-  val customButtonManager: CustomButtonManager get() = _customButtonManager
 
   /**
    * Manager for playback operations (seeking, speed).
@@ -281,7 +267,6 @@ class PlayerViewModel(
 
   // Audio state
   val currentVolume = MutableStateFlow(host.audioManager.getStreamVolume(AudioManager.STREAM_MUSIC))
-  private val volumeBoostCap by MPVLib.propInt["volume-max"].collectAsState(viewModelScope)
   
   // Gesture state delegates
   val isGestureSeeking: StateFlow<Boolean> get() = _gestureManager.isGestureSeeking
@@ -382,38 +367,11 @@ class PlayerViewModel(
   val panelShown = MutableStateFlow(Panels.None)
   val isSpeedLocked = MutableStateFlow(false)
 
-  // Web stream video qualities
-  val availableVideoQualities = MutableStateFlow<List<VideoQuality>>(emptyList())
-  val currentVideoQuality = MutableStateFlow<VideoQuality?>(null)
-
-  fun setAvailableVideoQualities(
-    qualities: List<VideoQuality>,
-    current: VideoQuality? = null,
-  ) {
-    availableVideoQualities.value = qualities
-    currentVideoQuality.value = current
-  }
-
-  fun clearVideoQualities() {
-    availableVideoQualities.value = emptyList()
-    currentVideoQuality.value = null
-  }
-
   // Seek state delegates
   val seekText: StateFlow<String?> get() = _gestureManager.seekText
   val doubleTapSeekAmount: StateFlow<Int> get() = _gestureManager.doubleTapSeekAmount
   val doubleTapSeekBasePos: StateFlow<Int?> get() = _gestureManager.doubleTapSeekBasePos
   val isSeekingForwards: StateFlow<Boolean> get() = _gestureManager.isSeekingForwards
-
-  // Frame navigation
-  private val _currentFrame = MutableStateFlow(0)
-  val currentFrame: StateFlow<Int> = _currentFrame.asStateFlow()
-
-  private val _totalFrames = MutableStateFlow(0)
-  val totalFrames: StateFlow<Int> = _totalFrames.asStateFlow()
-
-  private val _isFrameNavigationExpanded = MutableStateFlow(false)
-  val isFrameNavigationExpanded: StateFlow<Boolean> = _isFrameNavigationExpanded.asStateFlow()
 
   val isSnapshotLoading: StateFlow<Boolean> get() = _snapshotManager.isSnapshotLoading
 
@@ -441,11 +399,6 @@ class PlayerViewModel(
   )
   val currentAspectRatio: StateFlow<Double> = _currentAspectRatio.asStateFlow()
 
-  // Timer
-  private var timerJob: Job? = null
-  private val _remainingTime = MutableStateFlow(0)
-  val remainingTime: StateFlow<Int> = _remainingTime.asStateFlow()
-
   // Media title for subtitle association
   private val _mediaTitle = MutableStateFlow("")
   val mediaTitle: StateFlow<String> = _mediaTitle.asStateFlow()
@@ -472,13 +425,6 @@ class PlayerViewModel(
   private val _shuffleEnabled = MutableStateFlow(false)
   val shuffleEnabled: StateFlow<Boolean> = _shuffleEnabled.asStateFlow()
 
-  // A-B Loop state
-  val abLoopA: StateFlow<Double?> = _playlistManager.abLoopA
-  val abLoopB: StateFlow<Double?> = _playlistManager.abLoopB
-
-  private val _isABLoopExpanded = MutableStateFlow(false)
-  val isABLoopExpanded: StateFlow<Boolean> = _isABLoopExpanded.asStateFlow()
-
   // Mirroring state
   private val _isMirrored = MutableStateFlow(false)
   val isMirrored: StateFlow<Boolean> = _isMirrored.asStateFlow()
@@ -489,20 +435,8 @@ class PlayerViewModel(
 
   private val videoFlipFilterManager = VideoFlipFilterManager()
 
-  // ==================== Ambience Mode ======================================
-  val ambientController = xyz.mpv.rex.ui.player.ambient.AmbientController(
-    playerPreferences = playerPreferences,
-    scope = viewModelScope,
-    onShowText = { isOn ->
-      val text = host.context.getString(
-        if (isOn) R.string.ambient_mode_on else R.string.ambient_mode_off
-      )
-      playerUpdate.value = PlayerUpdates.ShowText(text)
-    }
-  )
-
-  // Expose ambient mode state through the controller
-  val isAmbientEnabled: StateFlow<Boolean> = ambientController.isAmbientEnabled
+  // Ambience Mode removed
+  val isAmbientEnabled: StateFlow<Boolean> = MutableStateFlow(false)
 
   init {
     // Track selection is now handled by TrackSelector in PlayerActivity
@@ -536,57 +470,17 @@ class PlayerViewModel(
       }
     }
 
-    // Observe volume boost cap changes to enforce limits dynamically (in PiP)
+    // Monitor duration to automatically enable precise seeking
     viewModelScope.launch {
-      audioPreferences.volumeBoostCap.changes().collect { cap ->
-        val maxVol = 100 + cap
-        runCatching {
-          MPVLib.setPropertyString("volume-max", maxVol.toString())
-          
-          // Clamp current volume if it exceeds the new limit
-          val currentMpvVol = MPVLib.getPropertyInt("volume") ?: 100
-          if (currentMpvVol > maxVol) {
-            MPVLib.setPropertyInt("volume", maxVol)
-          }
-        }.onFailure { e ->
-          Log.e(TAG, "Error setting volume-max: $maxVol", e)
-        }
-      }
-    }
-
-    // Monitor duration and AB loop changes to automatically enable precise seeking
-    viewModelScope.launch {
-      combine(
-        MPVLib.propInt["duration"],
-        abLoopA,
-        abLoopB
-      ) { duration, loopA, loopB ->
-        Triple(duration, loopA, loopB)
-      }.collect { (duration, loopA, loopB) ->
+      MPVLib.propInt["duration"].collect { duration ->
         val videoDuration = duration ?: 0
-        // Use precise seeking for videos shorter than 2 minutes, or if AB loop is active, or if preference is enabled
-        val isLoopActive = loopA != null || loopB != null
-        val shouldUsePreciseSeeking = playerPreferences.usePreciseSeeking.get() || (videoDuration in 1..119) || isLoopActive
-        
-        // Update hr-seek settings dynamically
+        val shouldUsePreciseSeeking = playerPreferences.usePreciseSeeking.get() || (videoDuration in 1..119)
         MPVLib.setPropertyString("hr-seek", if (shouldUsePreciseSeeking) "yes" else "no")
         MPVLib.setPropertyString("hr-seek-framedrop", if (shouldUsePreciseSeeking) "no" else "yes")
       }
     }
     
     
-    // Refresh custom buttons when Lua scripts are enabled/disabled or configuration changes
-    viewModelScope.launch {
-      combine(
-        advancedPreferences.enableLuaScripts.changes().drop(1),
-        playerPreferences.customButtons.changes().drop(1)
-      ) { _, _ -> }.collect {
-        _customButtonManager.setup()
-      }
-    }
-
-    _customButtonManager.setup()
-
     // Poll precise position when controls, seekbar, or gesture seek is visible (whether playing or paused)
     viewModelScope.launch {
       combine(
@@ -660,18 +554,6 @@ class PlayerViewModel(
     }
   }
 
-  fun onMpvCoreInitialized() {
-    _customButtonManager.onMpvInitialized()
-  }
-
-  // ==================== Custom Buttons ====================
-
-    val customButtons = _customButtonManager.customButtons
-
-    fun callCustomButton(id: String) = _customButtonManager.callButton(id)
-
-    fun callCustomButtonLongPress(id: String) = _customButtonManager.callButtonLongPress(id)
-
   // Cached values
   val doubleTapToSeekDuration: Int get() = _gestureManager.doubleTapToSeekDuration
   private val inputMethodManager by lazy {
@@ -700,26 +582,6 @@ class PlayerViewModel(
         "txt", "pgs"
       )
   }
-
-  // ==================== Timer ====================
-
-  fun startTimer(seconds: Int) {
-    timerJob?.cancel()
-    _remainingTime.value = seconds
-    if (seconds < 1) return
-
-    timerJob =
-      viewModelScope.launch {
-        for (time in seconds downTo 0) {
-          _remainingTime.value = time
-          delay(1000)
-        }
-        MPVLib.setPropertyBoolean("pause", true)
-        showToast(host.context.getString(R.string.toast_sleep_timer_ended))
-      }
-  }
-
-  // ==================== Decoder ====================
 
   // ==================== Audio/Subtitle Management ====================
 
@@ -761,21 +623,6 @@ class PlayerViewModel(
         _preciseDuration.value = 0f
       }
     }
-  }
-
-  fun onQualitySwitchStarted(targetPosition: Double) {
-    _isLoadingFile.value = true
-    _isLoadingUrl.value = true
-    _isNetworkStream.value = true
-    if (targetPosition > 0) {
-      _precisePosition.value = targetPosition.toFloat()
-    }
-  }
-
-  fun onQualitySwitchLoading() {
-    _isLoadingFile.value = true
-    _isLoadingUrl.value = true
-    _isNetworkStream.value = true
   }
 
   fun onFileLoaded(durationSec: Double) {
@@ -909,51 +756,57 @@ class PlayerViewModel(
 
   fun showControls() {
     if (sheetShown.value != Sheets.None || panelShown.value != Panels.None) return
-    try {
-      if (playerPreferences.showSystemStatusBar.get()) {
-        host.windowInsetsController.show(WindowInsetsCompat.Type.statusBars())
-        host.windowInsetsController.isAppearanceLightStatusBars = false
-      }
-      if (playerPreferences.showSystemNavigationBar.get()) {
-        host.windowInsetsController.show(WindowInsetsCompat.Type.navigationBars())
-      }
-    } catch (e: Exception) {
-      // Defensive: InsetsController animation can crash under FD pressure
-      // (e.g. during high-res HEVC playback on certain devices)
-      Log.e(TAG, "Failed to show system bars", e)
-    }
     _controlsShown.value = true
+    viewModelScope.launch(Dispatchers.Main.immediate) {
+      try {
+        if (playerPreferences.showSystemStatusBar.get()) {
+          host.windowInsetsController.show(WindowInsetsCompat.Type.statusBars())
+          host.windowInsetsController.isAppearanceLightStatusBars = false
+        }
+        if (playerPreferences.showSystemNavigationBar.get()) {
+          host.windowInsetsController.show(WindowInsetsCompat.Type.navigationBars())
+        }
+      } catch (e: Exception) {
+        Log.e(TAG, "Failed to show system bars", e)
+      }
+    }
   }
 
   fun hideControls() {
-    try {
-      if (playerPreferences.showSystemStatusBar.get()) {
-        host.windowInsetsController.hide(WindowInsetsCompat.Type.statusBars())
-      }
-      if (playerPreferences.showSystemNavigationBar.get()) {
-        host.windowInsetsController.hide(WindowInsetsCompat.Type.navigationBars())
-      }
-    } catch (e: Exception) {
-      Log.e(TAG, "Failed to hide system bars", e)
-    }
     _controlsShown.value = false
     _seekBarShown.value = false
+    viewModelScope.launch(Dispatchers.Main.immediate) {
+      try {
+        if (playerPreferences.showSystemStatusBar.get()) {
+          host.windowInsetsController.hide(WindowInsetsCompat.Type.statusBars())
+        }
+        if (playerPreferences.showSystemNavigationBar.get()) {
+          host.windowInsetsController.hide(WindowInsetsCompat.Type.navigationBars())
+        }
+      } catch (e: Exception) {
+        Log.e(TAG, "Failed to hide system bars", e)
+      }
+    }
   }
 
   fun autoHideControls() {
-    try {
-      if (playerPreferences.showSystemStatusBar.get()) {
-        host.windowInsetsController.hide(WindowInsetsCompat.Type.statusBars())
-      }
-      if (playerPreferences.showSystemNavigationBar.get()) {
-        host.windowInsetsController.hide(WindowInsetsCompat.Type.navigationBars())
-      }
-    } catch (e: Exception) {
-      Log.e(TAG, "Failed to hide system bars", e)
-    }
     _controlsShown.value = false
     _seekBarShown.value = true
+    viewModelScope.launch(Dispatchers.Main.immediate) {
+      try {
+        if (playerPreferences.showSystemStatusBar.get()) {
+          host.windowInsetsController.hide(WindowInsetsCompat.Type.statusBars())
+        }
+        if (playerPreferences.showSystemNavigationBar.get()) {
+          host.windowInsetsController.hide(WindowInsetsCompat.Type.navigationBars())
+        }
+      } catch (e: Exception) {
+        Log.e(TAG, "Failed to hide system bars", e)
+      }
+    }
   }
+
+  fun onOrientationChanged(isPortrait: Boolean) {}
 
   fun showSeekBar() {
     if (sheetShown.value == Sheets.None) {
@@ -980,7 +833,11 @@ class PlayerViewModel(
   }
 
   fun seekTo(position: Int) {
-    _playbackManager.seekTo(viewModelScope, position, abLoopA.value, abLoopB.value)
+    _playbackManager.seekTo(viewModelScope, position)
+  }
+
+  fun seekToImmediately(position: Int) {
+    _playbackManager.seekToImmediately(viewModelScope, position)
   }
 
   fun setPlaybackSpeed(speed: Float) {
@@ -1037,18 +894,6 @@ class PlayerViewModel(
   }
 
   fun changeVolumeBy(change: Int) {
-    val mpvVolume = MPVLib.getPropertyInt("volume")
-    val absoluteMaxVolume = volumeBoostCap ?: (audioPreferences.volumeBoostCap.get() + 100)
-
-    if (absoluteMaxVolume > 100 && currentVolume.value == maxVolume) {
-      if (mpvVolume == 100 && change < 0) {
-        changeVolumeTo(currentVolume.value + change)
-      }
-      val finalMPVVolume = (mpvVolume?.plus(change))?.coerceAtLeast(100) ?: 100
-      if (finalMPVVolume in 100..absoluteMaxVolume) {
-        return changeMPVVolumeTo(finalMPVVolume)
-      }
-    }
     changeVolumeTo(currentVolume.value + change)
   }
 
@@ -1059,7 +904,7 @@ class PlayerViewModel(
   }
 
   fun changeMPVVolumeTo(volume: Int) {
-    MPVLib.setPropertyInt("volume", volume)
+    MPVLib.setPropertyInt("volume", volume.coerceIn(0, 100))
   }
 
   fun displayVolumeSlider() {
@@ -1223,87 +1068,6 @@ class PlayerViewModel(
       }
   }
 
-  // ==================== Lua Invocation Handling ====================
-
-  fun handleLuaInvocation(
-    property: String,
-    value: String,
-  ) {
-    val data = value.removeSurrounding("\"").ifEmpty { return }
-
-    when (property.substringAfterLast("/")) {
-      "show_text" -> playerUpdate.value = PlayerUpdates.ShowText(data)
-      "toggle_ui" -> handleToggleUI(data)
-      "show_panel" -> handleShowPanel(data)
-      "seek_to_with_text" -> {
-        val (seekValue, text) = data.split("|", limit = 2)
-        seekToWithText(seekValue.toInt(), text)
-      }
-      "seek_by_with_text" -> {
-        val (seekValue, text) = data.split("|", limit = 2)
-        seekByWithText(seekValue.toInt(), text)
-      }
-      "seek_by" -> seekByWithText(data.toInt(), null)
-      "seek_to" -> seekToWithText(data.toInt(), null)
-      "software_keyboard" -> handleSoftwareKeyboard(data)
-    }
-
-    MPVLib.setPropertyString(property, "")
-  }
-
-  private fun handleToggleUI(data: String) {
-    when (data) {
-      "show" -> showControls()
-      "toggle" -> if (controlsShown.value) hideControls() else showControls()
-      "hide" -> {
-        sheetShown.value = Sheets.None
-        panelShown.value = Panels.None
-        hideControls()
-      }
-    }
-  }
-
-  private fun handleShowPanel(data: String) {
-    when (data) {
-      "frame_navigation" -> {
-        sheetShown.value = Sheets.FrameNavigation
-      }
-      else -> {
-        panelShown.value =
-          when (data) {
-            "subtitle_settings" -> Panels.SubtitleSettings
-            "subtitle_delay" -> Panels.SubtitleDelay
-            "audio_delay" -> Panels.AudioDelay
-            "video_filters" -> Panels.VideoFilters
-            else -> Panels.None
-          }
-      }
-    }
-  }
-
-  private fun handleSoftwareKeyboard(data: String) {
-    when (data) {
-      "show" -> forceShowSoftwareKeyboard()
-      "hide" -> forceHideSoftwareKeyboard()
-      "toggle" ->
-        if (!inputMethodManager.isActive) {
-          forceShowSoftwareKeyboard()
-        } else {
-          forceHideSoftwareKeyboard()
-        }
-    }
-  }
-
-  @Suppress("DEPRECATION")
-  private fun forceShowSoftwareKeyboard() {
-    inputMethodManager.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0)
-  }
-
-  @Suppress("DEPRECATION")
-  private fun forceHideSoftwareKeyboard() {
-    inputMethodManager.toggleSoftInput(InputMethodManager.SHOW_IMPLICIT, 0)
-  }
-
   // ==================== Gesture Handling ====================
 
   fun executeGestureAction(
@@ -1391,71 +1155,6 @@ class PlayerViewModel(
   fun resetAdvancedZoom() {
     setVideoScaleX(1f)
     setVideoScaleY(1f)
-  }
-
-  // ==================== Frame Navigation ====================
-
-  fun updateFrameInfo() {
-    _currentFrame.value = MPVLib.getPropertyInt("estimated-frame-number") ?: 0
-
-    val durationValue = MPVLib.getPropertyDouble("duration") ?: 0.0
-    val fps =
-      MPVLib.getPropertyDouble("container-fps")
-        ?: MPVLib.getPropertyDouble("estimated-vf-fps")
-        ?: 0.0
-
-    _totalFrames.value =
-      if (durationValue > 0 && fps > 0) {
-        (durationValue * fps).toInt()
-      } else {
-        0
-      }
-  }
-
-  fun toggleFrameNavigationExpanded() {
-    val wasExpanded = _isFrameNavigationExpanded.value
-    _isFrameNavigationExpanded.update { !it }
-    // Update frame info and pause when expanding (going from false to true)
-    if (!wasExpanded) {
-      // Pause the video if it's playing
-      if (paused != true) {
-        pauseUnpause()
-      }
-      updateFrameInfo()
-      showFrameInfoOverlay()
-    }
-  }
-
-  private fun showFrameInfoOverlay() {
-    playerUpdate.value = PlayerUpdates.FrameInfo(_currentFrame.value, _totalFrames.value)
-  }
-
-  fun frameStepForward() {
-    _playbackManager.frameStepForward(
-      scope = viewModelScope,
-      paused = paused,
-      onPauseUnpause = { pauseUnpause() },
-      onFrameStepped = {
-        updateFrameInfo()
-        viewModelScope.launch(Dispatchers.Main) {
-          showFrameInfoOverlay()
-        }
-      }
-    )
-  }
-
-  fun frameStepBackward() {
-    _playbackManager.frameStepBackward(
-      scope = viewModelScope,
-      paused = paused,
-      onPauseUnpause = { pauseUnpause() },
-      onFrameStepped = {
-        updateFrameInfo()
-        viewModelScope.launch(Dispatchers.Main) {
-          showFrameInfoOverlay()
-        }
-      }
-    )
   }
 
   fun takeSnapshot(context: Context) = _snapshotManager.takeSnapshot(context, viewModelScope)
@@ -1889,65 +1588,6 @@ class PlayerViewModel(
   fun shouldRepeatPlaylist(): Boolean =
     _playlistManager.shouldRepeatPlaylist(_repeatMode.value)
 
-  // ==================== A-B Loop ====================
-
-  fun toggleABLoopExpanded() {
-    _isABLoopExpanded.update { !it }
-  }
-
-  fun setLoopA() = _playlistManager.setLoopA()
-
-  fun setLoopB() = _playlistManager.setLoopB()
-
-  fun clearABLoop() = _playlistManager.clearABLoop()
-
-  fun cutABLoopClip(context: Context, mode: `is`.xyz.mpv.FastClipper.ClipMode = `is`.xyz.mpv.FastClipper.ClipMode.FAST_COPY) {
-    val a = abLoopA.value
-    val b = abLoopB.value
-    if (a == null || b == null) {
-      Toast.makeText(context, context.getString(R.string.ab_loop_set_both_points), Toast.LENGTH_SHORT).show()
-      return
-    }
-
-    val startMs = (minOf(a, b) * 1000).toLong()
-    val endMs = (maxOf(a, b) * 1000).toLong()
-
-    if (endMs <= startMs) {
-      Toast.makeText(context, context.getString(R.string.ab_loop_set_both_points), Toast.LENGTH_SHORT).show()
-      return
-    }
-
-    val path = runCatching { MPVLib.getPropertyString("path") }.getOrNull()
-    if (path.isNullOrBlank()) {
-      Toast.makeText(context, "No active video source found", Toast.LENGTH_SHORT).show()
-      return
-    }
-
-    Toast.makeText(context, context.getString(R.string.ab_loop_exporting_clip), Toast.LENGTH_SHORT).show()
-
-    viewModelScope.launch {
-      val outputFile = xyz.mpv.rex.utils.media.VideoClipper.getOutputClipFile(path, startMs, endMs, mode)
-      val result = xyz.mpv.rex.utils.media.VideoClipper.cutClip(context, path, outputFile, startMs, endMs, mode)
-
-      withContext(Dispatchers.Main) {
-        if (result.isSuccess) {
-          val savedFile = result.getOrNull() ?: outputFile
-          Toast.makeText(
-            context,
-            context.getString(R.string.ab_loop_clip_saved, savedFile.name),
-            Toast.LENGTH_LONG
-          ).show()
-        } else {
-          Toast.makeText(
-            context,
-            context.getString(R.string.ab_loop_clip_error, result.exceptionOrNull()?.localizedMessage ?: "Unknown error"),
-            Toast.LENGTH_LONG
-          ).show()
-        }
-      }
-    }
-  }
-
   fun formatTimestamp(seconds: Double): String {
     val totalSec = seconds.toInt()
     val h = totalSec / 3600
@@ -2011,20 +1651,6 @@ class PlayerViewModel(
     }
   }
 
-  // ==================== Ambient Mode Integration ====================
-
-  fun toggleAmbientMode() = ambientController.toggleAmbientMode()
-
-  fun onOrientationChanged(isPortrait: Boolean) {}
-
-  fun resetAmbientMode() {}
-
-  fun restartAmbientIfActive() {}
-
-  fun updateAmbientStretch() {}
-
-  fun scheduleAmbientUpdate(delayMs: Long = 350) {}
-
   // ==================== Utility ====================
 
   fun showToast(message: String) {
@@ -2034,7 +1660,6 @@ class PlayerViewModel(
   override fun onCleared() {
     super.onCleared()
     _playbackManager.cancelPendingJobs()
-    ambientController.cleanup()
     videoFlipFilterManager.reset()
   }
 }

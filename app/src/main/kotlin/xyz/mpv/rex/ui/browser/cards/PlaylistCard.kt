@@ -66,7 +66,7 @@ fun PlaylistCard(
   thumbnailSize: Dp = 128.dp,
   thumbnailAspectRatio: Float = 16f / 9f,
 ) {
-  val maxLines = if (uiSettings.unlimitedNameLines) Int.MAX_VALUE else 2
+  val maxLines = 2
 
   val thumbnailRepository = koinInject<ThumbnailRepository>()
   val configuration = LocalConfiguration.current
@@ -290,12 +290,6 @@ fun PlaylistCard(
       MediaMetadataChip(
         text = if (itemCount == 1) "1 item" else "$itemCount items",
       )
-
-      if (uiSettings.showDateChip && playlist.updatedAt > 0) {
-        MediaMetadataChip(
-          text = MediaFormatter.formatDate(playlist.updatedAt),
-        )
-      }
     }),
   )
 }

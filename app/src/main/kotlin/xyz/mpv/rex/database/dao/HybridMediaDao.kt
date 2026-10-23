@@ -25,6 +25,17 @@ interface HybridMediaDao {
   )
   suspend fun getAvailableMedia(includeNoMedia: Boolean): List<HybridMediaEntity>
 
+  @Query(
+    """
+    SELECT * FROM hybrid_media_index
+    WHERE available = 1
+      AND parentIdentity = :parentIdentity
+      AND (:includeNoMedia OR isNoMedia = 0)
+    ORDER BY displayName COLLATE NOCASE
+    """,
+  )
+  suspend fun getAvailableMediaForParent(parentIdentity: String, includeNoMedia: Boolean): List<HybridMediaEntity>
+
   @Query("SELECT COUNT(*) FROM hybrid_media_index WHERE available = 1")
   suspend fun getAvailableCount(): Int
 

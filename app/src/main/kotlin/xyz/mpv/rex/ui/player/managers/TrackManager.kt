@@ -98,7 +98,6 @@ class TrackManager(
   /**
    * Attaches a remote audio URL (http/https) as an extra audio track.
    * Bypasses resolveUri since the source is not a local Uri.
-   * Intended for yt-dlp alternate audio streams from the companion add-on.
    */
   fun addRemoteAudio(url: String, label: String? = null, select: Boolean = false, lang: String? = null) {
     scope.launch(Dispatchers.IO) {

@@ -854,10 +854,10 @@ class HybridMediaIndexRepository(
 
     val ancestors = mutableSetOf<String>()
     tree.keys.forEach { path ->
-      var parent = File(path).parent
+      var parent = File(path).parent?.replace('\\', '/')
       while (parent != null && parent.length > 1) {
         ancestors += parent
-        parent = File(parent).parent
+        parent = File(parent).parent?.replace('\\', '/')
       }
     }
     ancestors.forEach { path ->
@@ -866,7 +866,7 @@ class HybridMediaIndexRepository(
 
     tree.keys.sortedByDescending { it.length }.forEach { path ->
       val node = tree[path] ?: return@forEach
-      val parentPath = File(path).parent ?: return@forEach
+      val parentPath = File(path).parent?.replace('\\', '/') ?: return@forEach
       val parent = tree[parentPath] ?: return@forEach
       parent.hasSubfolders = true
       parent.videoCount += node.videoCount
@@ -902,7 +902,7 @@ class HybridMediaIndexRepository(
         } else {
           it.videoCount > 0
         }
-        File(it.path).parent == path && hasMedia
+        File(it.path).parent?.replace('\\', '/') == path && hasMedia
       }
 
       if (childrenWithMedia.size == 1) {
@@ -1031,7 +1031,13 @@ class HybridMediaIndexRepository(
     private const val INDEX_TTL_MS = 5 * 60 * 1000L
     private const val PARALLEL_ENRICHMENT_LIMIT = 4
 
-    private fun normalizePath(file: File): String =
-      runCatching { file.canonicalPath }.getOrElse { file.absoluteFile.normalize().path }
+    private fun normalizePath(file: File): String {
+      val p = file.path.replace('\\', '/')
+      return if (p.startsWith("/")) {
+        runCatching { file.normalize().path.replace('\\', '/') }.getOrDefault(p)
+      } else {
+        runCatching { file.canonicalPath.replace('\\', '/') }.getOrElse { file.absoluteFile.normalize().path.replace('\\', '/') }
+      }
+    }
   }
 }

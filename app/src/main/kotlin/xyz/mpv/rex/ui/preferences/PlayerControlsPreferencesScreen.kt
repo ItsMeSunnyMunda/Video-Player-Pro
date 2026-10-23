@@ -226,6 +226,9 @@ object PlayerControlsPreferencesScreen : Screen {
                         }
                     }
 
+                    item {
+                        IconsLegend(modifier = Modifier.padding(horizontal = 16.dp))
+                    }
                 }
             }
         }

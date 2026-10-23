@@ -32,21 +32,13 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.FloatingActionButtonMenu
-import androidx.compose.material3.FloatingActionButtonMenuItem
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ToggleFloatingActionButton
-import androidx.compose.material3.ToggleFloatingActionButtonDefaults.animateIcon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.PlainTooltip
+import xyz.mpv.rex.domain.recentlyplayed.repository.RecentlyPlayedRepository
+import xyz.mpv.rex.ui.browser.components.FabPlaybackResolver
+import xyz.mpv.rex.ui.browser.components.BindResumeFab
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TooltipAnchorPosition
-import androidx.compose.material3.TooltipBox
-import androidx.compose.material3.TooltipDefaults
-import androidx.compose.material3.animateFloatingActionButton
-import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.pluralStringResource
@@ -117,8 +109,27 @@ object RecentlyPlayedScreen : Screen {
     val enableRecentlyPlayed by advancedPreferences.enableRecentlyPlayed.collectAsState()
     val navigationBarHeight = xyz.mpv.rex.ui.browser.LocalNavigationBarHeight.current
 
+    val recentlyPlayedRepo = koinInject<RecentlyPlayedRepository>()
+    val recentlyPlayedEntities by remember(recentlyPlayedRepo) {
+      recentlyPlayedRepo.observeRecentlyPlayed(limit = 100)
+    }.collectAsState(initial = xyz.mpv.rex.ui.browser.components.GlobalFabState.cachedRecentlyPlayed)
+
+    androidx.compose.runtime.SideEffect {
+      if (recentlyPlayedEntities.isNotEmpty()) {
+        xyz.mpv.rex.ui.browser.components.GlobalFabState.cachedRecentlyPlayed = recentlyPlayedEntities
+      }
+    }
+
+    val fabTargetFilePath = remember(recentlyPlayedEntities) {
+      FabPlaybackResolver.resolvePlayableFile(
+        currentFolderPath = null,
+        orderedSubfolderPaths = emptyList(),
+        recentlyPlayed = recentlyPlayedEntities,
+        includeNoMedia = true,
+      )
+    }
+
     val isFabVisible = remember { mutableStateOf(true) }
-    val isFabExpanded = remember { mutableStateOf(false) }
     val isRefreshing = remember { mutableStateOf(false) }
     
     val coroutineScope = rememberCoroutineScope()
@@ -168,6 +179,14 @@ object RecentlyPlayedScreen : Screen {
       onExpandedChange = { },
     )
 
+    BindResumeFab(
+      targetFilePath = fabTargetFilePath,
+      visible = !hidePlayFabShowInHeader && !selectionManager.isInSelectionMode && isFabVisible.value,
+      onPlay = { path ->
+        MediaUtils.playFile(path, context, "recently_played_button")
+      },
+    )
+
     LaunchedEffect(Unit) {
       xyz.mpv.rex.ui.browser.MainScreen.scrollToTopRequest.collect { tabId ->
         if (tabId == "recents") {
@@ -203,17 +222,9 @@ object RecentlyPlayedScreen : Screen {
             onSettingsClick = {
               backStack.add(xyz.mpv.rex.ui.preferences.PreferencesScreen)
             },
-            normalPlayClick = if (hidePlayFabShowInHeader && recentItems.isNotEmpty()) {
+            normalPlayClick = if (hidePlayFabShowInHeader && fabTargetFilePath != null) {
               {
-                coroutineScope.launch {
-                  val recentlyPlayedVideos = xyz.mpv.rex.utils.history.RecentlyPlayedOps.getRecentlyPlayed(limit = 1)
-                  val lastPlayed = recentlyPlayedVideos.firstOrNull()
-                  if (lastPlayed != null) {
-                    MediaUtils.playFile(lastPlayed.filePath, context, "recently_played_button")
-                  } else {
-                    android.widget.Toast.makeText(context, context.getString(R.string.no_recently_played_videos), android.widget.Toast.LENGTH_SHORT).show()
-                  }
-                }
+                MediaUtils.playFile(fabTargetFilePath, context, "recently_played_button")
               }
             } else null,
             isSingleSelection = selectionManager.isSingleSelection,
@@ -225,99 +236,7 @@ object RecentlyPlayedScreen : Screen {
             onDeleteClick = { deleteDialogOpen.value = true },
           )
         },
-      floatingActionButton = {
-        val navigationBarHeight = xyz.mpv.rex.ui.browser.LocalNavigationBarHeight.current
-        val miniPlayerStateManager = koinInject<xyz.mpv.rex.ui.browser.miniplayer.MiniPlayerStateManager>()
-        val miniPlayerState by miniPlayerStateManager.state.collectAsState()
-
-        if (!hidePlayFabShowInHeader && recentItems.isNotEmpty()) {
-          TooltipBox(
-            positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Above),
-            tooltip = { PlainTooltip { Text(stringResource(R.string.play_recently_played_or_first)) } },
-            state = rememberTooltipState(),
-          ) {
-            FloatingActionButtonMenu(
-              modifier = Modifier.padding(
-                bottom = navigationBarHeight + 8.dp
-              ),
-              expanded = isFabExpanded.value,
-              button = {
-                TooltipBox(
-                  positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
-                    if (isFabExpanded.value) TooltipAnchorPosition.Start else TooltipAnchorPosition.Above
-                  ),
-                  tooltip = { PlainTooltip { Text(stringResource(R.string.play_recently_played_or_first)) } },
-                  state = rememberTooltipState(),
-                ) {
-                  Box(
-                    modifier = Modifier.animateFloatingActionButton(
-                      visible = !selectionManager.isInSelectionMode && isFabVisible.value,
-                      alignment = Alignment.BottomEnd,
-                    )
-                  ) {
-                    ToggleFloatingActionButton(
-                      checked = isFabExpanded.value,
-                      onCheckedChange = { /* handled by overlay */ },
-                    ) {
-                      val imageVector by remember {
-                        derivedStateOf {
-                          if (checkedProgress > 0.5f) Icons.Filled.Close else Icons.Filled.PlayArrow
-                        }
-                      }
-                      Icon(
-                        painter = rememberVectorPainter(imageVector),
-                        contentDescription = null,
-                        modifier = Modifier.animateIcon({ checkedProgress }),
-                      )
-                    }
-                    Box(
-                      modifier = Modifier
-                        .matchParentSize()
-                        .pointerInput(Unit) {
-                          detectTapGestures(
-                            onTap = {
-                              if (isFabExpanded.value) {
-                                isFabExpanded.value = false
-                              } else {
-                                coroutineScope.launch {
-                                  val recentlyPlayedVideos =
-                                    xyz.mpv.rex.utils.history.RecentlyPlayedOps.getRecentlyPlayed(limit = 1)
-                                  val lastPlayed = recentlyPlayedVideos.firstOrNull()
-                                  if (lastPlayed != null) {
-                                    MediaUtils.playFile(
-                                      lastPlayed.filePath,
-                                      context,
-                                      "recently_played_button"
-                                    )
-                                  } else {
-                                    android.widget.Toast.makeText(
-                                      context,
-                                      context.getString(R.string.no_recently_played_videos),
-                                      android.widget.Toast.LENGTH_SHORT
-                                    ).show()
-                                  }
-                                }
-                              }
-                            },
-                            onLongPress = {
-                              if (!isFabExpanded.value) isFabExpanded.value = true
-                            }
-                          )
-                        }
-                    )
-                  }
-                }
-              },
-            ) {
-              FloatingActionButtonMenuItem(
-                onClick = { isFabExpanded.value = false },
-                icon = { Icon(Icons.Filled.PlayArrow, contentDescription = null) },
-                text = { Text(text = stringResource(R.string.play_recently_played_or_first)) },
-              )
-            }
-          }
-        }
-      },
+      floatingActionButton = {},
     ) { padding ->
       when {
         !enableRecentlyPlayed -> {

@@ -255,16 +255,7 @@ class PlayerPlaybackStateController(
     val resumeMode = activity.playerPreferences.resumePlaybackMode.get()
     val hasValidSavedPosition = state.lastPosition > 3
 
-    if (activity.startedAtSavedPosition) {
-      Log.d(TAG, "Media was already started at position ${state.lastPosition} via load options; skipping seek")
-      activity.startedAtSavedPosition = false
-      if (resumeMode == ResumePlaybackMode.Ask && activity.playerPreferences.autoResumeOnAsk.get()) {
-        withContext(Dispatchers.Main) {
-          activity.viewModel.playerUpdate.value = PlayerUpdates.ResumedFrom(state.lastPosition)
-        }
-      }
-      return
-    }
+
 
     when {
       !activity.playerPreferences.savePositionOnQuit.get() || resumeMode == ResumePlaybackMode.Never || !hasValidSavedPosition -> {

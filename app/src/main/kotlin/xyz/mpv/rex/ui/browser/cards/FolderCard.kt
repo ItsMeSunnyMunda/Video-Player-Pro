@@ -12,8 +12,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material3.Card
@@ -72,14 +73,12 @@ fun FolderCard(
   thumbnail: ImageBitmap? = null,
 ) {
   val browserPreferences = koinInject<BrowserPreferences>()
-  val showFolderPath by browserPreferences.showFolderPath.collectAsState()
   val showAudioFiles by browserPreferences.showAudioFiles.collectAsState()
   val totalCount = folder.activeCount(showAudioFiles)
   val totalSize = folder.activeSize(showAudioFiles)
   val totalDuration = folder.activeDuration(showAudioFiles)
   val countLabel = if (totalCount == 1) "1 Item" else "$totalCount Items"
-  val maxLines = if (uiSettings.unlimitedNameLines) Int.MAX_VALUE else 2
-  val parentPath = folder.path.substringBeforeLast("/", folder.path)
+  val maxLines = 2
 
   BaseMediaCard(
     title = folder.name,
@@ -111,24 +110,25 @@ fun FolderCard(
     gridColumns = gridColumns,
     maxTitleLines = maxLines,
     overlayContent = {
-      if (uiSettings.showUnplayedOldVideoLabel && newVideoCount > 0) {
-        Surface(
-          shape = pillShape,
-          color = MaterialTheme.colorScheme.errorContainer,
-          contentColor = MaterialTheme.colorScheme.onErrorContainer,
+      // Simple coloured circle with number for new videos in the top right corner of the folder
+      if (newVideoCount > 0) {
+        Box(
+          contentAlignment = Alignment.Center,
           modifier = Modifier
             .align(Alignment.TopEnd)
-            .padding(6.dp),
-          shadowElevation = 2.dp,
+            .padding(if (isGridMode) 6.dp else 2.dp)
+            .size(if (isGridMode) 22.dp else 18.dp)
+            .background(MaterialTheme.colorScheme.primary, CircleShape)
         ) {
           Text(
-            text = newVideoCount.toString(),
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
+            text = "$newVideoCount",
+            style = MaterialTheme.typography.labelSmall.copy(fontSize = if (isGridMode) 11.sp else 10.sp, fontWeight = FontWeight.Bold),
+            color = MaterialTheme.colorScheme.onPrimary,
+            textAlign = TextAlign.Center,
           )
         }
       }
+
       if (isGridMode && uiSettings.showTotalDurationChip && totalDuration > 0) {
         Surface(
           shape = pillShape,
@@ -147,17 +147,7 @@ fun FolderCard(
         }
       }
     },
-    infoContent = {
-      if (!isGridMode && showFolderPath && parentPath.isNotEmpty()) {
-        Text(
-          parentPath,
-          style = MaterialTheme.typography.bodySmall,
-          color = MaterialTheme.colorScheme.onSurfaceVariant,
-          maxLines = 1,
-          overflow = TextOverflow.Ellipsis,
-        )
-      }
-    },
+    infoContent = null,
     chipsContent = if (isGridMode) null else ({
       if (customChipContent != null) {
         customChipContent()
@@ -170,9 +160,6 @@ fun FolderCard(
       }
       if (uiSettings.showTotalDurationChip && totalDuration > 0) {
         MediaMetadataChip(text = MediaFormatter.formatDuration(totalDuration))
-      }
-      if (uiSettings.showDateChip && folder.lastModified > 0) {
-        MediaMetadataChip(text = MediaFormatter.formatDate(folder.lastModified * 1000))
       }
     })
   )

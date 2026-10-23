@@ -75,8 +75,12 @@ val allPlayerButtons =
       it != PlayerButton.VIDEO_TITLE &&
       it != PlayerButton.PICTURE_IN_PICTURE &&
       it != PlayerButton.SCREEN_ROTATION &&
-      it != PlayerButton.ASPECT_RATIO &&
-      it != PlayerButton.BACKGROUND_PLAYBACK
+      it != PlayerButton.BACKGROUND_PLAYBACK &&
+      it != PlayerButton.AB_LOOP &&
+      it != PlayerButton.FRAME_NAVIGATION &&
+      it != PlayerButton.AMBIENT_MODE &&
+      it != PlayerButton.SLEEP_TIMER &&
+      it != PlayerButton.VIDEO_QUALITY
   }
 
 /**

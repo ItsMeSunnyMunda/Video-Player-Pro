@@ -4,7 +4,6 @@ import android.content.Context
 import android.util.Log
 import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
-import xyz.mpv.rex.domain.hdr.HdrToysManager
 import xyz.mpv.rex.preferences.AdvancedPreferences
 import xyz.mpv.rex.preferences.DecoderPreferences
 import xyz.mpv.rex.preferences.SubtitlesPreferences
@@ -30,28 +29,26 @@ object MpvConfigSync : KoinComponent {
   private val advancedPreferences: AdvancedPreferences by inject()
   private val subtitlesPreferences: SubtitlesPreferences by inject()
   private val decoderPreferences: DecoderPreferences by inject()
-  private val hdrToysManager: HdrToysManager by inject()
   private val fileManager: FileManager by inject()
+
+  @Volatile
+  private var isPrepared = false
+
+  fun invalidate() {
+    isPrepared = false
+  }
 
   /**
    * Prepares all MPV config/assets. Call once before [`is`.xyz.mpv.BaseMPVView.initialize].
    * Safe to call from any thread; does file IO.
    */
-  fun prepare(context: Context) {
+  fun prepare(context: Context, force: Boolean = false) {
+    if (isPrepared && !force) return
     runCatching {
       Utils.copyAssets(context)
       syncFromUserMpvDirectory(context)
 
-      // Configure hdr-toys conditional profile in mpv.conf if enabled
-      val isEnabled = decoderPreferences.enableHdrToys.get()
-      val toneStr = decoderPreferences.hdrToysToneMapping.get()
-      val gamutStr = decoderPreferences.hdrToysGamutMapping.get()
-
-      val tone = runCatching { HdrToysManager.ToneMapping.valueOf(toneStr) }.getOrDefault(HdrToysManager.ToneMapping.ASTRA)
-      val gamut = runCatching { HdrToysManager.GamutMapping.valueOf(gamutStr) }.getOrDefault(HdrToysManager.GamutMapping.BOTTOSSON)
-
-      hdrToysManager.configureMpvConf(context.filesDir, isEnabled, tone, gamut)
-
+      isPrepared = true
       Log.d(TAG, "MPV config and scripts prepared successfully")
     }.onFailure { e ->
       Log.e(TAG, "Error copying MPV config and scripts", e)

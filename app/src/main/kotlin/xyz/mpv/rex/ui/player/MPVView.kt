@@ -12,7 +12,6 @@ import xyz.mpv.rex.preferences.AudioPreferences
 import xyz.mpv.rex.preferences.DecoderPreferences
 import xyz.mpv.rex.preferences.PlayerPreferences
 import xyz.mpv.rex.preferences.SubtitlesPreferences
-import xyz.mpv.rex.domain.anime4k.Anime4KManager
 import xyz.mpv.rex.ui.player.PlayerActivity.Companion.TAG
 import xyz.mpv.rex.ui.player.controls.components.panels.toColorHexString
 import `is`.xyz.mpv.BaseMPVView
@@ -32,7 +31,6 @@ class MPVView(
   private val decoderPreferences: DecoderPreferences by inject()
   private val advancedPreferences: AdvancedPreferences by inject()
   private val subtitlesPreferences: SubtitlesPreferences by inject()
-  private val anime4kManager: Anime4KManager by inject()
 
   var isExiting = false
 
@@ -138,6 +136,18 @@ class MPVView(
     if (decoderPreferences.useYUV420P.get()) {
       MPVLib.setOptionString("vf", "format=yuv420p")
     }
+
+    // 4.1: Persistent GPU Shader Cache to avoid recompiling shaders on each video open
+    val shaderCacheDir = java.io.File(context.cacheDir, "mpv_shaders")
+    if (!shaderCacheDir.exists()) shaderCacheDir.mkdirs()
+    MPVLib.setOptionString("gpu-shader-cache-dir", shaderCacheDir.absolutePath)
+
+    // 4.2: Fast Demuxer & Probing for instant first frame playback
+    MPVLib.setOptionString("demuxer-lavf-probesize", "32768")
+    MPVLib.setOptionString("demuxer-lavf-analyzeduration", "0.1")
+    MPVLib.setOptionString("vd-lavc-fast", "yes")
+    MPVLib.setOptionString("demuxer-readahead-secs", "2.0")
+
     val logLevel = if (advancedPreferences.verboseLogging.get()) "v" else "warn"
     MPVLib.setOptionString("msg-level", "all=$logLevel")
 
@@ -165,9 +175,6 @@ class MPVView(
     val preciseSeek = playerPreferences.usePreciseSeeking.get()
     MPVLib.setOptionString("hr-seek", if (preciseSeek) "yes" else "no")
     MPVLib.setOptionString("hr-seek-framedrop", if (preciseSeek) "no" else "yes")
-
-    // Anime4K shader initialization (MUST be in initOptions, not after file load!)
-    applyAnime4KShaders()
 
     setupSubtitlesOptions()
     setupAudioOptions()
@@ -229,12 +236,7 @@ class MPVView(
       Debanding.GPU -> MPVLib.setOptionString("deband", "yes")
     }
 
-    advancedPreferences.enabledStatisticsPage.get().let {
-      if (it != 0) {
-        MPVLib.command("script-binding", "stats/display-stats-toggle")
-        MPVLib.command("script-binding", "stats/display-page-$it")
-      }
-    }
+
   }
 
   @Suppress("ReturnCount", "DEPRECATION")
@@ -336,7 +338,7 @@ class MPVView(
     MPVLib.setOptionString("alang", "")
     MPVLib.setOptionString("audio-delay", (audioPreferences.defaultAudioDelay.get() / 1000.0).toString())
     MPVLib.setOptionString("audio-pitch-correction", audioPreferences.audioPitchCorrection.get().toString())
-    MPVLib.setOptionString("volume-max", (audioPreferences.volumeBoostCap.get() + 100).toString())
+    MPVLib.setOptionString("volume-max", "100")
     
     // Volume normalization using dynamic audio normalization filter
     if (audioPreferences.volumeNormalization.get()) {
@@ -435,66 +437,5 @@ class MPVView(
     val subEncoding = subtitlesPreferences.subtitleEncoding.get()
     val codepage = if (subEncoding.isBlank() || subEncoding.equals("auto", ignoreCase = true)) "auto" else subEncoding
     MPVLib.setOptionString("sub-codepage", codepage)
-  }
-
-
-  fun applyAnime4KShaders() {
-    runCatching {
-      val enabled = decoderPreferences.enableAnime4K.get()
-      if (!enabled) {
-        return
-      }
-      
-      // Anime4K requires the legacy GPU path unless gpu-next is running on Vulkan.
-      val gpuNextActive = decoderPreferences.gpuNext.get()
-      val useVulkan = decoderPreferences.useVulkan.get()
-      if (gpuNextActive && !useVulkan) {
-        return  // Abort shader loading to prevent incompatible state
-      }
-      
-      // Initialize shader files if needed - THIS IS CRITICAL!
-      if (!anime4kManager.initialize()) {
-        return
-      }
-      
-      // Get preferences
-      val modeStr = decoderPreferences.anime4kMode.get()
-      
-      // Check if mode is OFF - if so, don't apply any shaders
-      if (modeStr == "OFF") {
-        return  // Exit early - user wants it OFF
-      }
-      
-      // Parse user's selected mode
-      val mode = try {
-          Anime4KManager.Mode.valueOf(modeStr)
-      } catch (e: IllegalArgumentException) {
-          Anime4KManager.Mode.OFF
-      }
-      
-      val qualityStr = decoderPreferences.anime4kQuality.get()
-      val quality = try {
-        Anime4KManager.Quality.valueOf(qualityStr)
-      } catch (e: IllegalArgumentException) {
-        Anime4KManager.Quality.BALANCED
-      }
-      
-      // Get shader chain from manager
-      val shaderChain = anime4kManager.getShaderChain(mode, quality)
-      
-      if (shaderChain.isNotEmpty()) {
-        // OpenGL-only tuning should not be pushed onto the Vulkan backend.
-        if (!useVulkan) {
-          MPVLib.setOptionString("opengl-pbo", "yes")
-          MPVLib.setOptionString("opengl-early-flush", "no")
-        }
-        MPVLib.setOptionString("vd-lavc-dr", "yes")
-        
-        // Apply shaders (MUST use setOptionString in initOptions!)
-        MPVLib.setOptionString("glsl-shaders", shaderChain)
-      }
-    }.onFailure {
-      // Don't crash - just continue without shaders
-    }
   }
 }

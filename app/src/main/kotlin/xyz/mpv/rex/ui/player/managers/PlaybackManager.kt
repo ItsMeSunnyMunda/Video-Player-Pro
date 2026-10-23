@@ -28,6 +28,7 @@ class PlaybackManager(
     private var seekJob: Job? = null
     private var resyncJob: Job? = null
     @Volatile private var lastSeekAt = 0L
+    @Volatile private var pendingSeekPosition: Int? = null
 
     private fun canAccessMpv(): Boolean =
         MPVLifecycleLock.isNativeInitialized && !MPVLifecycleLock.isTearingDown.value
@@ -35,6 +36,7 @@ class PlaybackManager(
     fun cancelPendingJobs() {
         seekJob?.cancel()
         seekJob = null
+        pendingSeekPosition = null
         resyncJob?.cancel()
         resyncJob = null
     }
@@ -56,47 +58,75 @@ class PlaybackManager(
     }
 
     /**
-     * Performs an absolute seek to the specified position.
-     * Clamps the position between 0 and duration, and optionally within AB loop.
-     * Handles streams with undetermined duration gracefully and cancels prior in-flight seeks.
+     * Performs an absolute seek with high-performance live throttling (~25-30 FPS).
+     * Guarantees smooth real-time video frame preview while dragging, without cancelling in-flight seeks.
      */
-    fun seekTo(scope: CoroutineScope, position: Int, abLoopA: Double?, abLoopB: Double?) {
+    fun seekTo(scope: CoroutineScope, position: Int, abLoopA: Double? = null, abLoopB: Double? = null) {
+        if (!canAccessMpv()) return
+        val isRemote = runCatching { MPVLib.getPropertyString("path") }.getOrNull()?.startsWith("http", ignoreCase = true) == true
+        val coalesceMs = if (isRemote) SEEK_COALESCE_REMOTE_MS else SEEK_COALESCE_LOCAL_MS
+        val now = SystemClock.elapsedRealtime()
+        val timeSinceLastSeek = now - lastSeekAt
+
+        pendingSeekPosition = position
+
+        if (timeSinceLastSeek >= coalesceMs && (seekJob == null || seekJob?.isActive == false)) {
+            lastSeekAt = now
+            val target = position
+            pendingSeekPosition = null
+            seekJob = scope.launch(Dispatchers.IO) {
+                executeSeek(target, abLoopA, abLoopB)
+            }
+        } else if (seekJob == null || seekJob?.isActive == false) {
+            seekJob = scope.launch(Dispatchers.IO) {
+                val delayTime = (coalesceMs - (SystemClock.elapsedRealtime() - lastSeekAt)).coerceAtLeast(0L)
+                if (delayTime > 0) delay(delayTime)
+                val target = pendingSeekPosition ?: return@launch
+                pendingSeekPosition = null
+                lastSeekAt = SystemClock.elapsedRealtime()
+                executeSeek(target, abLoopA, abLoopB)
+            }
+        }
+    }
+
+    /**
+     * Immediately applies the final seek position upon gesture release or seekbar release.
+     */
+    fun seekToImmediately(scope: CoroutineScope, position: Int, abLoopA: Double? = null, abLoopB: Double? = null) {
         seekJob?.cancel()
+        pendingSeekPosition = null
+        lastSeekAt = SystemClock.elapsedRealtime()
         if (!canAccessMpv()) return
         seekJob = scope.launch(Dispatchers.IO) {
-            if (!isActive || !canAccessMpv()) return@launch
-            val isRemote = runCatching { MPVLib.getPropertyString("path") }.getOrNull()?.startsWith("http", ignoreCase = true) == true
-            val coalesceMs = if (isRemote) SEEK_COALESCE_REMOTE_MS else SEEK_COALESCE_LOCAL_MS
-            val timeSinceLastSeek = SystemClock.elapsedRealtime() - lastSeekAt
-            if (timeSinceLastSeek < coalesceMs) {
-                delay(coalesceMs - timeSinceLastSeek)
-            }
-            if (!isActive || !canAccessMpv()) return@launch
-            lastSeekAt = SystemClock.elapsedRealtime()
-            val maxDuration = runCatching { MPVLib.getPropertyInt("duration") }.getOrNull() ?: 0
-
-            var clampedPosition = position
-            if (abLoopA != null && abLoopB != null) {
-                val min = minOf(abLoopA.toInt(), abLoopB.toInt())
-                val max = maxOf(abLoopA.toInt(), abLoopB.toInt())
-                clampedPosition = clampedPosition.coerceIn(min, max)
-            }
-
-            if (maxDuration > 0) {
-                if (clampedPosition !in 0..maxDuration) return@launch
-            } else {
-                if (clampedPosition < 0) return@launch
-            }
-
-            if (!isActive || !canAccessMpv()) return@launch
-
-            // Use precise seeking only if preference is explicitly enabled or for short finite videos (1..119s)
-            val shouldUsePreciseSeeking = playerPreferences.usePreciseSeeking.get() || (maxDuration in 1..119)
-            val seekMode = if (shouldUsePreciseSeeking) "absolute+exact" else "absolute+keyframes"
-            ensureUnmuted()
-            if (!canAccessMpv()) return@launch
-            runCatching { MPVLib.command("seek", clampedPosition.toString(), seekMode) }
+            executeSeek(position, abLoopA, abLoopB)
         }
+    }
+
+    private fun executeSeek(position: Int, abLoopA: Double? = null, abLoopB: Double? = null) {
+        if (!canAccessMpv()) return
+        val maxDuration = runCatching { MPVLib.getPropertyInt("duration") }.getOrNull() ?: 0
+
+        var clampedPosition = position
+        if (abLoopA != null && abLoopB != null) {
+            val min = minOf(abLoopA.toInt(), abLoopB.toInt())
+            val max = maxOf(abLoopA.toInt(), abLoopB.toInt())
+            clampedPosition = clampedPosition.coerceIn(min, max)
+        }
+
+        if (maxDuration > 0) {
+            if (clampedPosition !in 0..maxDuration) return
+        } else {
+            if (clampedPosition < 0) return
+        }
+
+        if (!canAccessMpv()) return
+
+        // Use precise seeking only if preference is explicitly enabled or for short finite videos (1..119s)
+        val shouldUsePreciseSeeking = playerPreferences.usePreciseSeeking.get() || (maxDuration in 1..119)
+        val seekMode = if (shouldUsePreciseSeeking) "absolute+exact" else "absolute+keyframes"
+        ensureUnmuted()
+        if (!canAccessMpv()) return
+        runCatching { MPVLib.command("seek", clampedPosition.toString(), seekMode) }
     }
 
     /**

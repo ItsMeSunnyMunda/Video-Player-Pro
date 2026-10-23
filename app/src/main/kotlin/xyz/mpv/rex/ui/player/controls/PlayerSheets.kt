@@ -18,17 +18,12 @@ import xyz.mpv.rex.ui.player.controls.components.sheets.AspectRatioSheet
 import xyz.mpv.rex.ui.player.controls.components.sheets.AudioTracksSheet
 import xyz.mpv.rex.ui.player.controls.components.sheets.ChaptersSheet
 import xyz.mpv.rex.ui.player.controls.components.sheets.CustomSkipDurationSheet
-import xyz.mpv.rex.ui.player.controls.components.sheets.SleepTimerSheet
 import xyz.mpv.rex.ui.player.controls.components.sheets.VideoZoomSheet
 import xyz.mpv.rex.ui.player.controls.components.sheets.DecodersSheet
-import xyz.mpv.rex.ui.player.controls.components.sheets.FrameNavigationSheet
 import xyz.mpv.rex.ui.player.controls.components.sheets.MoreSheet
 import xyz.mpv.rex.ui.player.controls.components.sheets.PlaybackSpeedSheet
 import xyz.mpv.rex.ui.player.controls.components.sheets.PlaylistSheet
 import xyz.mpv.rex.ui.player.controls.components.sheets.SubtitlesSheet
-import xyz.mpv.rex.ui.player.controls.components.sheets.OnlineSubtitleSearchSheet
-import xyz.mpv.rex.ui.player.controls.components.sheets.ClipExportSheet
-import xyz.mpv.rex.ui.player.controls.components.sheets.VideoQualitySheet
 import xyz.mpv.rex.utils.media.MediaInfoParser
 import dev.vivvvek.seeker.Segment
 import kotlinx.collections.immutable.ImmutableList
@@ -73,8 +68,6 @@ fun PlayerSheets(
   onMakeDefaultSpeed: (Float) -> Unit,
   onResetDefaultSpeed: () -> Unit,
   // More sheet
-  sleepTimerTimeRemaining: Int,
-  onStartSleepTimer: (Int) -> Unit,
   onOpenPanel: (Panels) -> Unit,
   onShowSheet: (Sheets) -> Unit,
   onDismissRequest: () -> Unit,
@@ -150,68 +143,8 @@ fun PlayerSheets(
         isSubtitleSelected = isSubtitleSelected,
         onAddSubtitle = { showFilePicker = true },
         onRemoveSubtitle = onRemoveSubtitle,
-        onOpenSubtitleSettings = { onOpenPanel(Panels.SubtitleSettings) },
         onOpenSubtitleDelay = { onOpenPanel(Panels.SubtitleDelay) },
-        onOpenOnlineSearch = { onShowSheet(Sheets.OnlineSubtitleSearch) },
         onDismissRequest = onDismissRequest
-      )
-    }
-
-    Sheets.OnlineSubtitleSearch -> {
-      val isSearching by viewModel.isSearchingSub.composeCollectAsState()
-      val isDownloading by viewModel.isDownloadingSub.composeCollectAsState()
-      val results by viewModel.wyzieSearchResults.composeCollectAsState()
-      val isOnlineSectionExpanded by viewModel.isOnlineSectionExpanded.composeCollectAsState()
-
-      // Media Search / Autocomplete
-      val mediaResults by viewModel.mediaSearchResults.composeCollectAsState()
-      val isSearchingMedia by viewModel.isSearchingMedia.composeCollectAsState()
-      
-      // TV Show / Seasons / Episodes
-      val selectedTvShow by viewModel.selectedTvShow.composeCollectAsState()
-      val isFetchingTvDetails by viewModel.isFetchingTvDetails.composeCollectAsState()
-      val selectedSeason by viewModel.selectedSeason.composeCollectAsState()
-      val seasonEpisodes by viewModel.seasonEpisodes.composeCollectAsState()
-      val isFetchingEpisodes by viewModel.isFetchingEpisodes.composeCollectAsState()
-      val selectedEpisode by viewModel.selectedEpisode.composeCollectAsState()
-
-      OnlineSubtitleSearchSheet(
-        onDismissRequest = onDismissRequest,
-        onDownloadOnline = { viewModel.downloadSubtitle(it) },
-        isSearching = isSearching,
-        isDownloading = isDownloading,
-        searchResults = results.toImmutableList(),
-        isOnlineSectionExpanded = isOnlineSectionExpanded,
-        onToggleOnlineSection = { viewModel.toggleOnlineSection() },
-        mediaTitle = viewModel.currentMediaTitle,
-        // Autocomplete & Series Selection
-        mediaSearchResults = mediaResults.toImmutableList(),
-        isSearchingMedia = isSearchingMedia,
-        onSearchMedia = { query ->
-          // Parse both the user's search query and the original filename
-          val queryInfo = MediaInfoParser.parse(query)
-          val fileInfo = MediaInfoParser.parse(viewModel.currentMediaTitle)
-          
-          // Use clean title from query for TMDB search (strip S01E05 noise)
-          val searchTitle = queryInfo.title.ifBlank { query }
-          viewModel.subtitleManager.searchMedia(searchTitle)
-          
-          // Priority: TMDB selection > query parsed > file parsed
-          val s = selectedSeason?.season_number ?: queryInfo.season ?: fileInfo.season
-          val e = selectedEpisode?.episode_number ?: queryInfo.episode ?: fileInfo.episode
-          val y = queryInfo.year ?: fileInfo.year
-          viewModel.subtitleManager.searchSubtitles(searchTitle, s, e, y)
-        },
-        onSelectMedia = { viewModel.subtitleManager.selectMedia(it) },
-        selectedTvShow = selectedTvShow,
-        isFetchingTvDetails = isFetchingTvDetails,
-        selectedSeason = selectedSeason,
-        onSelectSeason = { viewModel.subtitleManager.selectSeason(it) },
-        seasonEpisodes = seasonEpisodes.toImmutableList(),
-        isFetchingEpisodes = isFetchingEpisodes,
-        selectedEpisode = selectedEpisode,
-        onSelectEpisode = { viewModel.subtitleManager.selectEpisode(it, viewModel.currentMediaTitle) },
-        onClearMediaSelection = { viewModel.subtitleManager.clearMediaSelection() }
       )
     }
 
@@ -299,15 +232,9 @@ fun PlayerSheets(
     }
 
     Sheets.More -> {
-      MoreSheet(
-        remainingTime = sleepTimerTimeRemaining,
-        onStartTimer = onStartSleepTimer,
-        onDismissRequest = onDismissRequest,
-        onEnterFiltersPanel = { onOpenPanel(Panels.VideoFilters) },
-        onAnime4KChanged = { viewModel.restartAmbientIfActive() },
-        viewModel = viewModel,
-        onShowSheet = onShowSheet,
-      )
+      LaunchedEffect(Unit) {
+        onDismissRequest()
+      }
     }
 
     Sheets.PlaybackSpeed -> {
@@ -427,22 +354,6 @@ fun PlayerSheets(
       )
     }
 
-    Sheets.FrameNavigation -> {
-      val currentFrame by viewModel.currentFrame.composeCollectAsState()
-      val totalFrames by viewModel.totalFrames.composeCollectAsState()
-      FrameNavigationSheet(
-        currentFrame = currentFrame,
-        totalFrames = totalFrames,
-        onUpdateFrameInfo = viewModel::updateFrameInfo,
-        onPause = viewModel::pause,
-        onUnpause = viewModel::unpause,
-        onPauseUnpause = viewModel::pauseUnpause,
-        onSeekTo = { position, _ -> viewModel.seekTo(position) },
-        onDismissRequest = onDismissRequest,
-      )
-    }
-
-
     Sheets.Playlist -> {
       // Refresh playlist items when sheet is shown
       LaunchedEffect(Unit) {
@@ -487,47 +398,5 @@ fun PlayerSheets(
       )
     }
 
-    Sheets.SleepTimer -> {
-      SleepTimerSheet(
-        remainingTime = sleepTimerTimeRemaining,
-        onStartTimer = onStartSleepTimer,
-        onDismissRequest = onDismissRequest,
-      )
-    }
-
-    Sheets.ClipExport -> {
-      val a by viewModel.abLoopA.composeCollectAsState()
-      val b by viewModel.abLoopB.composeCollectAsState()
-      val valA = a ?: 0.0
-      val valB = b ?: 0.0
-      val startSec = minOf(valA, valB)
-      val endSec = maxOf(valA, valB)
-      val context = androidx.compose.ui.platform.LocalContext.current
-
-      ClipExportSheet(
-        startSec = startSec,
-        endSec = endSec,
-        onExport = { mode ->
-          viewModel.cutABLoopClip(context, mode)
-        },
-        onDismissRequest = onDismissRequest,
-      )
-    }
-
-    Sheets.VideoQuality -> {
-      val availableQualities by viewModel.availableVideoQualities.composeCollectAsState()
-      val currentQuality by viewModel.currentVideoQuality.composeCollectAsState()
-      val context = androidx.compose.ui.platform.LocalContext.current
-      val activity = context as? xyz.mpv.rex.ui.player.PlayerActivity
-
-      VideoQualitySheet(
-        qualities = availableQualities,
-        currentQuality = currentQuality,
-        onSelectQuality = { quality ->
-          activity?.switchVideoQuality(quality)
-        },
-        onDismissRequest = onDismissRequest,
-      )
-    }
   }
 }

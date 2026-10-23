@@ -94,22 +94,11 @@ fun TopPlayerControlsPortrait(
       )
     }
 
-    val titleInteractionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
-
     Box(
       modifier =
         Modifier
           .fillMaxHeight()
           .clip(RoundedCornerShape(14.dp))
-          .clickable(
-            interactionSource = titleInteractionSource,
-            indication = ripple(bounded = true),
-            enabled = playlistModeEnabled,
-            onClick = {
-              clickEvent()
-              onOpenSheet(Sheets.Playlist)
-            },
-          )
           .padding(horizontal = 8.dp),
       contentAlignment = Alignment.CenterStart,
     ) {
@@ -142,16 +131,6 @@ fun TopRightPlayerControlsPortrait(
   onOpenSheet: (Sheets) -> Unit,
   onOpenPanel: (Panels) -> Unit,
 ) {
-  ControlsGroup(
-    shape = RoundedCornerShape(16.dp),
-  ) {
-    ControlsButton(
-      icon = Icons.Default.MoreVert,
-      onClick = { onOpenSheet(Sheets.More) },
-      onLongClick = { onOpenPanel(Panels.VideoFilters) },
-      modifier = Modifier.size(38.dp),
-    )
-  }
 }
 
 @Composable

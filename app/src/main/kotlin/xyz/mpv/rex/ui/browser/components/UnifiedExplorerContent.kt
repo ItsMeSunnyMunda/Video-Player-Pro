@@ -113,7 +113,6 @@ fun <T> UnifiedExplorerContent(
   }
 
   val tapThumbnailToSelect by gesturePreferences.tapThumbnailToSelect.collectAsState()
-  val showSubtitleIndicator by browserPreferences.showSubtitleIndicator.collectAsState()
   val showAudioFiles by browserPreferences.showAudioFiles.collectAsState()
   val navigationBarHeight = LocalNavigationBarHeight.current
 
@@ -327,7 +326,6 @@ fun <T> UnifiedExplorerContent(
                       ExplorerItemCard(
                         item = item,
                         isSelected = isSelected(item),
-                        showSubtitleIndicator = showSubtitleIndicator,
                         isGridMode = true,
                         columns = folderGridColumns,
                         uiSettings = uiSettings,
@@ -375,7 +373,6 @@ fun <T> UnifiedExplorerContent(
                 ExplorerItemCard(
                   item = item,
                   isSelected = isSelected(item),
-                  showSubtitleIndicator = showSubtitleIndicator,
                   isGridMode = false,
                   columns = 1,
                   uiSettings = uiSettings,
@@ -438,7 +435,6 @@ fun <T> UnifiedExplorerContent(
                       ExplorerItemCard(
                         item = item,
                         isSelected = isSelected(item),
-                        showSubtitleIndicator = showSubtitleIndicator,
                         isGridMode = true,
                         columns = videoGridColumns,
                         uiSettings = uiSettings,
@@ -486,7 +482,6 @@ fun <T> UnifiedExplorerContent(
                 ExplorerItemCard(
                   item = item,
                   isSelected = isSelected(item),
-                  showSubtitleIndicator = showSubtitleIndicator,
                   isGridMode = false,
                   columns = 1,
                   uiSettings = uiSettings,
@@ -542,7 +537,6 @@ fun <T> UnifiedExplorerContent(
             ExplorerItemCard(
               item = item,
               isSelected = isSelected(item),
-              showSubtitleIndicator = showSubtitleIndicator,
               isGridMode = true,
               columns = columns,
               uiSettings = uiSettings,
@@ -607,7 +601,6 @@ fun <T> UnifiedExplorerContent(
                     ExplorerItemCard(
                       item = item,
                       isSelected = isSelected(item),
-                      showSubtitleIndicator = showSubtitleIndicator,
                       isGridMode = false,
                       columns = 1,
                       uiSettings = uiSettings,
@@ -642,7 +635,6 @@ fun <T> UnifiedExplorerContent(
               ExplorerItemCard(
                 item = item,
                 isSelected = isSelected(item),
-                showSubtitleIndicator = showSubtitleIndicator,
                 isGridMode = false,
                 columns = 1,
                 uiSettings = uiSettings,
@@ -717,7 +709,6 @@ private fun <T> getItemId(item: T): String {
 private fun <T> ExplorerItemCard(
   item: T,
   isSelected: Boolean,
-  showSubtitleIndicator: Boolean,
   isGridMode: Boolean,
   columns: Int,
   uiSettings: UiSettings,
@@ -776,7 +767,6 @@ private fun <T> ExplorerItemCard(
         onThumbClick = onThumbClick,
         isGridMode = isGridMode,
         gridColumns = columns,
-        showSubtitleIndicator = showSubtitleIndicator,
         isOldAndUnplayed = isOldAndUnplayed,
         isWatched = isWatched,
         isRecentlyPlayed = isRecentlyPlayed
@@ -794,7 +784,6 @@ private fun <T> ExplorerItemCard(
         onThumbClick = onThumbClick,
         isGridMode = isGridMode,
         gridColumns = columns,
-        showSubtitleIndicator = showSubtitleIndicator,
         progressPercentage = item.progressPercentage,
         isWatched = item.isWatched,
         isOldAndUnplayed = item.isOldAndUnplayed,
@@ -828,7 +817,6 @@ private fun <T> ExplorerItemCard(
         onThumbClick = onThumbClick,
         isGridMode = isGridMode,
         gridColumns = columns,
-        showSubtitleIndicator = showSubtitleIndicator,
         progressPercentage = item.progress,
         isWatched = item.isWatched,
         isRecentlyPlayed = isRecentlyPlayed
@@ -904,7 +892,6 @@ private fun <T> ExplorerItemCard(
         onThumbClick = onThumbClick,
         isGridMode = isGridMode,
         gridColumns = columns,
-        showSubtitleIndicator = showSubtitleIndicator,
         progressPercentage = videoPlaybackProgress[item.video.id],
         isOldAndUnplayed = isOldAndUnplayed,
         isWatched = isWatched,
@@ -921,8 +908,7 @@ private fun <T> ExplorerItemCard(
         onLongClick = onLongClick,
         onThumbClick = onThumbClick,
         isGridMode = isGridMode,
-        gridColumns = columns,
-        showSubtitleIndicator = showSubtitleIndicator
+        gridColumns = columns
       )
     }
   }

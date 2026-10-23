@@ -30,8 +30,7 @@ object MetadataRetrieval {
     fun isMetadataNeeded(browserPreferences: BrowserPreferences): Boolean {
         // Video card chips
         val needsVideoMetadata = browserPreferences.showResolutionChip.get() ||
-                browserPreferences.showFramerateInResolution.get() ||
-                browserPreferences.showSubtitleIndicator.get()
+                browserPreferences.showFramerateInResolution.get()
 
         // Folder card chips
         val needsFolderMetadata = browserPreferences.showTotalDurationChip.get()
@@ -44,8 +43,7 @@ object MetadataRetrieval {
      */
     fun isVideoMetadataNeeded(browserPreferences: BrowserPreferences): Boolean {
         return browserPreferences.showResolutionChip.get() ||
-                browserPreferences.showFramerateInResolution.get() ||
-                browserPreferences.showSubtitleIndicator.get()
+                browserPreferences.showFramerateInResolution.get()
     }
 
     /**

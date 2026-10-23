@@ -155,9 +155,8 @@ class MediaLibraryViewModel(
           null
         }
 
-        // Correct logic for "NEW" label
-        val videoAge = currentTime - (video.dateModified * 1000)
-        val isOldAndUnplayed = (playbackState == null && videoAge <= thresholdMillis) || (playbackState != null && playbackState.timeRemaining == -1)
+        // MX Player style NEW tag: unplayed videos are NEW until played even 0.1s
+        val isOldAndUnplayed = playbackState == null || playbackState.timeRemaining == -1
 
         VideoWithPlaybackInfo(
           video = videoWithOrientation,

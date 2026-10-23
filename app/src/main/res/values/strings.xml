@@ -146,7 +146,7 @@
     <string name="pref_layout_portrait_bottom_controls">Portrait Bottom Controls</string>
 
     <string name="pref_player">Player</string>
-    <string name="pref_player_summary">Orientation, gestures and controls</string>
+    <string name="pref_player_summary">Seeking, zoom and gestures</string>
     <string name="pref_player_orientation">Orientation</string>
     <string name="pref_player_orientation_free">Free</string>
     <string name="pref_player_orientation_video">Video</string>
@@ -337,7 +337,7 @@
     <string name="pref_audio_volume_boost_cap">Volume boost cap</string>
 
     <string name="pref_advanced">Advanced</string>
-    <string name="pref_advanced_summary">Configuration location, mpv.conf</string>
+    <string name="pref_advanced_summary">Backup and restore settings</string>
     <string name="pref_advanced_mpv_conf_storage_location">Pick configuration storage location</string>
     <string name="config_editor_unsaved_changes">Unsaved changes</string>
     <string name="config_editor_no_storage_location">No storage location set</string>
@@ -1476,16 +1476,13 @@
 
     <!-- Visibility Field Toggles -->
     <string name="fields">Fields</string>
-    <string name="field_video_thumbnails">Video Thumbnails</string>
-    <string name="field_full_name">Full Name</string>
+    <string name="field_video_thumbnails">Thumbnails</string>
     <string name="field_total_videos">Total Videos</string>
     <string name="field_total_duration">Total Duration</string>
     <string name="field_folder_size">Folder Size</string>
     <string name="field_file_size">File Size</string>
     <string name="field_resolution">Resolution</string>
     <string name="field_framerate">Framerate</string>
-    <string name="field_progress_bar">Progress Bar</string>
-    <string name="field_subtitle_indicator">Subtitle Indicator</string>
 
     <!-- Auto Playlists -->
     <string name="auto_playlists">Auto Playlists</string>

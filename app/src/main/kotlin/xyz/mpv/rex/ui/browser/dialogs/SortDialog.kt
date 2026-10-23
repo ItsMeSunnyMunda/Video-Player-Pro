@@ -512,25 +512,18 @@ private fun ContentTogglesSection(
   toggles: List<ContentToggle>,
   modifier: Modifier = Modifier,
 ) {
-  var expanded by remember { mutableStateOf(false) }
-
   Column(
     modifier = modifier
       .fillMaxWidth()
       .clip(RoundedCornerShape(16.dp))
       .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
   ) {
-    // Header row with Filters text and dropdown button
+    // Header row with Filters text
     Row(
       modifier = Modifier
         .fillMaxWidth()
-        .clickable(
-          interactionSource = remember { MutableInteractionSource() },
-          indication = ripple(bounded = true),
-          onClick = { expanded = !expanded }
-        )
         .padding(12.dp),
-      horizontalArrangement = Arrangement.SpaceBetween,
+      horizontalArrangement = Arrangement.Start,
       verticalAlignment = Alignment.CenterVertically,
     ) {
       Text(
@@ -539,69 +532,61 @@ private fun ContentTogglesSection(
         fontWeight = FontWeight.Medium,
         color = MaterialTheme.colorScheme.onSurface,
       )
-
-      Icon(
-        imageVector = if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.ArrowDropDown,
-        contentDescription = if (expanded) stringResource(R.string.cd_collapse) else stringResource(R.string.cd_expand),
-        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-      )
     }
 
-    if (expanded) {
-      Column(
-        modifier = Modifier
-          .fillMaxWidth()
-          .padding(start = 12.dp, end = 12.dp, bottom = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
-      ) {
-        toggles.forEach { toggle ->
-          Row(
-            modifier = Modifier
-              .fillMaxWidth()
-              .clip(RoundedCornerShape(8.dp))
-              .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = ripple(bounded = true),
-                onClick = { toggle.onCheckedChange(!toggle.checked) },
-              )
-              .padding(vertical = 4.dp, horizontal = 4.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-          ) {
-            Text(
-              text = toggle.label,
-              style = MaterialTheme.typography.bodyMedium,
-              color = MaterialTheme.colorScheme.onSurface,
+    Column(
+      modifier = Modifier
+        .fillMaxWidth()
+        .padding(start = 12.dp, end = 12.dp, bottom = 12.dp),
+      verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+      toggles.forEach { toggle ->
+        Row(
+          modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .clickable(
+              interactionSource = remember { MutableInteractionSource() },
+              indication = ripple(bounded = true),
+              onClick = { toggle.onCheckedChange(!toggle.checked) },
             )
-            Switch(
-              checked = toggle.checked,
-              onCheckedChange = toggle.onCheckedChange,
-              modifier = Modifier.scale(0.8f),
-              thumbContent = {
-                Crossfade(
-                  targetState = toggle.checked,
-                  animationSpec = tween(durationMillis = 200),
-                  label = "SwitchIconAnimation"
-                ) { isChecked ->
-                  if (isChecked) {
-                    Icon(
-                      imageVector = Icons.Filled.Check,
-                      contentDescription = null,
-                      modifier = Modifier.size(SwitchDefaults.IconSize),
-                      tint = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                  } else {
-                    Icon(
-                      imageVector = Icons.Filled.Close,
-                      contentDescription = null,
-                      modifier = Modifier.size(SwitchDefaults.IconSize),
-                      tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                  }
+            .padding(vertical = 4.dp, horizontal = 4.dp),
+          horizontalArrangement = Arrangement.SpaceBetween,
+          verticalAlignment = Alignment.CenterVertically,
+        ) {
+          Text(
+            text = toggle.label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+          )
+          Switch(
+            checked = toggle.checked,
+            onCheckedChange = toggle.onCheckedChange,
+            modifier = Modifier.scale(0.8f),
+            thumbContent = {
+              Crossfade(
+                targetState = toggle.checked,
+                animationSpec = tween(durationMillis = 200),
+                label = "SwitchIconAnimation"
+              ) { isChecked ->
+                if (isChecked) {
+                  Icon(
+                    imageVector = Icons.Filled.Check,
+                    contentDescription = null,
+                    modifier = Modifier.size(SwitchDefaults.IconSize),
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                  )
+                } else {
+                  Icon(
+                    imageVector = Icons.Filled.Close,
+                    contentDescription = null,
+                    modifier = Modifier.size(SwitchDefaults.IconSize),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                  )
                 }
               }
-            )
-          }
+            }
+          )
         }
       }
     }
@@ -614,70 +599,45 @@ private fun VisibilityTogglesSection(
   toggles: List<VisibilityToggle>,
   modifier: Modifier = Modifier,
 ) {
-  var expanded by remember { mutableStateOf(false) }
-
   Column(
     modifier = modifier
       .fillMaxWidth()
       .clip(RoundedCornerShape(16.dp))
-      .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
+      .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+      .padding(12.dp),
+    verticalArrangement = Arrangement.spacedBy(10.dp),
   ) {
-    // Header row with Fields text and dropdown button
-    Row(
-      modifier = Modifier
-        .fillMaxWidth()
-        .clickable(
-          interactionSource = remember { MutableInteractionSource() },
-          indication = ripple(bounded = true),
-          onClick = { expanded = !expanded }
-        )
-        .padding(12.dp),
-      horizontalArrangement = Arrangement.SpaceBetween,
-      verticalAlignment = Alignment.CenterVertically,
+    Text(
+      text = stringResource(R.string.fields),
+      style = MaterialTheme.typography.titleMedium,
+      fontWeight = FontWeight.Medium,
+      color = MaterialTheme.colorScheme.onSurface,
+    )
+
+    FlowRow(
+      modifier = Modifier.fillMaxWidth(),
+      horizontalArrangement = Arrangement.spacedBy(8.dp),
+      verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-      Text(
-        text = stringResource(R.string.fields),
-        style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.Medium,
-        color = MaterialTheme.colorScheme.onSurface,
-      )
-
-      Icon(
-        imageVector = if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.ArrowDropDown,
-        contentDescription = if (expanded) stringResource(R.string.cd_collapse) else stringResource(R.string.cd_expand),
-        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-      )
-    }
-
-    // Expandable filter chips section
-    if (expanded) {
-      FlowRow(
-        modifier = Modifier
-          .fillMaxWidth()
-          .padding(start = 12.dp, end = 12.dp, bottom = 12.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-      ) {
-        toggles.forEach { toggle ->
-          FilterChip(
-            selected = toggle.checked,
-            onClick = { toggle.onCheckedChange(!toggle.checked) },
-            label = {
-              Text(
-                text = toggle.label,
-                style = MaterialTheme.typography.labelMedium,
-              )
-            },
-            colors = FilterChipDefaults.filterChipColors(
-              selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-              selectedLabelColor = MaterialTheme.colorScheme.primary,
-              containerColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.5f),
-              labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-            ),
-            border = null,
-            leadingIcon = null,
-          )
-        }
+      toggles.forEach { toggle ->
+        FilterChip(
+          selected = toggle.checked,
+          onClick = { toggle.onCheckedChange(!toggle.checked) },
+          label = {
+            Text(
+              text = toggle.label,
+              style = MaterialTheme.typography.labelMedium,
+            )
+          },
+          colors = FilterChipDefaults.filterChipColors(
+            selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+            selectedLabelColor = MaterialTheme.colorScheme.primary,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.5f),
+            labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+          ),
+          border = null,
+          leadingIcon = null,
+        )
       }
     }
   }
@@ -770,18 +730,11 @@ fun FolderSortDialog(
 ) {
   val backstack = LocalBackStack.current
   val browserPreferences = koinInject<BrowserPreferences>()
-  val appearancePreferences = koinInject<AppearancePreferences>()
   val showTotalVideosChip by browserPreferences.showTotalVideosChip.collectAsState()
   val showTotalDurationChip by browserPreferences.showTotalDurationChip.collectAsState()
   val showTotalSizeChip by browserPreferences.showTotalSizeChip.collectAsState()
-  val showDateChip by browserPreferences.showDateChip.collectAsState()
-  val showFolderPath by browserPreferences.showFolderPath.collectAsState()
-  val showProgressBar by browserPreferences.showProgressBar.collectAsState()
-  val showSubtitleIndicator by browserPreferences.showSubtitleIndicator.collectAsState()
   val showAudioFiles by browserPreferences.showAudioFiles.collectAsState()
   val includeNoMediaContent by browserPreferences.includeNoMediaContent.collectAsState()
-  val unlimitedNameLines by appearancePreferences.unlimitedNameLines.collectAsState()
-  val showVideoThumbnails by browserPreferences.showVideoThumbnails.collectAsState()
   val showSizeChip by browserPreferences.showSizeChip.collectAsState()
   val showResolutionChip by browserPreferences.showResolutionChip.collectAsState()
   val showFramerateInResolution by browserPreferences.showFramerateInResolution.collectAsState()
@@ -859,63 +812,7 @@ fun FolderSortDialog(
       Icons.Filled.SwapVert,
     ),
     showSortOptions = isAlbumView,
-    viewModeSelector = MultiViewModeSelector(
-      label = stringResource(R.string.view_mode),
-      options = listOf(
-        ViewModeOption(
-          label = stringResource(R.string.view_mode_folder),
-          icon = Icons.Filled.ViewModule,
-          isSelected = folderViewMode == FolderViewMode.AlbumView,
-          onClick = {
-            browserPreferences.folderViewMode.set(FolderViewMode.AlbumView)
-            while (backstack.size > 1) {
-              backstack.removeLastOrNull()
-            }
-          }
-        ),
-        ViewModeOption(
-          label = stringResource(R.string.view_mode_tree),
-          icon = Icons.Filled.AccountTree,
-          isSelected = folderViewMode == FolderViewMode.FileManager,
-          onClick = {
-            browserPreferences.folderViewMode.set(FolderViewMode.FileManager)
-            while (backstack.size > 1) {
-              backstack.removeLastOrNull()
-            }
-          }
-        ),
-        ViewModeOption(
-          label = stringResource(R.string.view_mode_library),
-          icon = Icons.Filled.VideoLibrary,
-          isSelected = folderViewMode == FolderViewMode.MediaLibrary,
-          onClick = {
-            browserPreferences.folderViewMode.set(FolderViewMode.MediaLibrary)
-            while (backstack.size > 1) {
-              backstack.removeLastOrNull()
-            }
-          }
-        )
-      )
-    ),
-    layoutModeSelector = ViewModeSelector(
-      label = stringResource(R.string.layout),
-      firstOptionLabel = stringResource(R.string.layout_mode_list),
-      secondOptionLabel = stringResource(R.string.layout_mode_grid),
-      firstOptionIcon = Icons.AutoMirrored.Filled.ViewList,
-      secondOptionIcon = Icons.Filled.GridView,
-      isFirstOptionSelected = mediaLayoutMode == MediaLayoutMode.LIST,
-      onViewModeChange = { isFirstOption ->
-        browserPreferences.mediaLayoutMode.set(
-          if (isFirstOption) MediaLayoutMode.LIST else MediaLayoutMode.GRID
-        )
-      },
-    ),
     contentToggles = listOf(
-      ContentToggle(
-        label = stringResource(R.string.filter_audio_files),
-        checked = showAudioFiles,
-        onCheckedChange = { browserPreferences.showAudioFiles.set(it) },
-      ),
       ContentToggle(
         label = stringResource(R.string.filter_show_nomedia_folders),
         checked = includeNoMediaContent,
@@ -924,34 +821,19 @@ fun FolderSortDialog(
     ),
     visibilityToggles = listOf(
       VisibilityToggle(
-        label = stringResource(R.string.field_video_thumbnails),
-        checked = showVideoThumbnails,
-        onCheckedChange = { browserPreferences.showVideoThumbnails.set(it) },
-      ),
-      VisibilityToggle(
-        label = stringResource(R.string.field_full_name),
-        checked = unlimitedNameLines,
-        onCheckedChange = { appearancePreferences.unlimitedNameLines.set(it) },
-      ),
-      VisibilityToggle(
-        label = stringResource(R.string.path),
-        checked = showFolderPath,
-        onCheckedChange = { browserPreferences.showFolderPath.set(it) },
-      ),
-      VisibilityToggle(
         label = stringResource(R.string.field_total_videos),
         checked = showTotalVideosChip,
         onCheckedChange = { browserPreferences.showTotalVideosChip.set(it) },
       ),
       VisibilityToggle(
-        label = stringResource(R.string.field_total_duration),
-        checked = showTotalDurationChip,
-        onCheckedChange = { browserPreferences.showTotalDurationChip.set(it) },
-      ),
-      VisibilityToggle(
         label = stringResource(R.string.field_folder_size),
         checked = showTotalSizeChip,
         onCheckedChange = { browserPreferences.showTotalSizeChip.set(it) },
+      ),
+      VisibilityToggle(
+        label = stringResource(R.string.field_total_duration),
+        checked = showTotalDurationChip,
+        onCheckedChange = { browserPreferences.showTotalDurationChip.set(it) },
       ),
       VisibilityToggle(
         label = stringResource(R.string.field_file_size),
@@ -967,21 +849,6 @@ fun FolderSortDialog(
         label = stringResource(R.string.field_framerate),
         checked = showFramerateInResolution,
         onCheckedChange = { browserPreferences.showFramerateInResolution.set(it) },
-      ),
-      VisibilityToggle(
-        label = stringResource(R.string.sort_type_date),
-        checked = showDateChip,
-        onCheckedChange = { browserPreferences.showDateChip.set(it) },
-      ),
-      VisibilityToggle(
-        label = stringResource(R.string.field_progress_bar),
-        checked = showProgressBar,
-        onCheckedChange = { browserPreferences.showProgressBar.set(it) },
-      ),
-      VisibilityToggle(
-        label = stringResource(R.string.field_subtitle_indicator),
-        checked = showSubtitleIndicator,
-        onCheckedChange = { browserPreferences.showSubtitleIndicator.set(it) },
       ),
     ),
     folderGridColumnSelector = folderGridColumnSelector,
@@ -1010,18 +877,11 @@ fun VideoSortDialog(
 
   val videoGridColumns = if (isLandscape) videoGridColumnsLandscape else videoGridColumnsPortrait
   val folderGridColumns = if (isLandscape) folderGridColumnsLandscape else folderGridColumnsPortrait
-  val appearancePreferences = koinInject<AppearancePreferences>()
   val showAudioFiles by browserPreferences.showAudioFiles.collectAsState()
   val includeNoMediaContent by browserPreferences.includeNoMediaContent.collectAsState()
-  val showVideoThumbnails by browserPreferences.showVideoThumbnails.collectAsState()
   val showSizeChip by browserPreferences.showSizeChip.collectAsState()
   val showResolutionChip by browserPreferences.showResolutionChip.collectAsState()
   val showFramerateInResolution by browserPreferences.showFramerateInResolution.collectAsState()
-  val showProgressBar by browserPreferences.showProgressBar.collectAsState()
-  val showDateChip by browserPreferences.showDateChip.collectAsState()
-  val showSubtitleIndicator by browserPreferences.showSubtitleIndicator.collectAsState()
-  val unlimitedNameLines by appearancePreferences.unlimitedNameLines.collectAsState()
-  val showFolderPath by browserPreferences.showFolderPath.collectAsState()
   val showTotalVideosChip by browserPreferences.showTotalVideosChip.collectAsState()
   val showTotalDurationChip by browserPreferences.showTotalDurationChip.collectAsState()
   val showTotalSizeChip by browserPreferences.showTotalSizeChip.collectAsState()
@@ -1085,63 +945,7 @@ fun VideoSortDialog(
         Icons.Filled.CalendarToday,
         Icons.Filled.SwapVert,
       ),
-    viewModeSelector = MultiViewModeSelector(
-      label = stringResource(R.string.view_mode),
-      options = listOf(
-        ViewModeOption(
-          label = stringResource(R.string.view_mode_folder),
-          icon = Icons.Filled.ViewModule,
-          isSelected = folderViewMode == FolderViewMode.AlbumView,
-          onClick = {
-            browserPreferences.folderViewMode.set(FolderViewMode.AlbumView)
-            while (backstack.size > 1) {
-              backstack.removeLastOrNull()
-            }
-          }
-        ),
-        ViewModeOption(
-          label = stringResource(R.string.view_mode_tree),
-          icon = Icons.Filled.AccountTree,
-          isSelected = folderViewMode == FolderViewMode.FileManager,
-          onClick = {
-            browserPreferences.folderViewMode.set(FolderViewMode.FileManager)
-            while (backstack.size > 1) {
-              backstack.removeLastOrNull()
-            }
-          }
-        ),
-        ViewModeOption(
-          label = stringResource(R.string.view_mode_library),
-          icon = Icons.Filled.VideoLibrary,
-          isSelected = folderViewMode == FolderViewMode.MediaLibrary,
-          onClick = {
-            browserPreferences.folderViewMode.set(FolderViewMode.MediaLibrary)
-            while (backstack.size > 1) {
-              backstack.removeLastOrNull()
-            }
-          }
-        )
-      )
-    ),
-    layoutModeSelector = ViewModeSelector(
-      label = stringResource(R.string.layout),
-      firstOptionLabel = stringResource(R.string.layout_mode_list),
-      secondOptionLabel = stringResource(R.string.layout_mode_grid),
-      firstOptionIcon = Icons.AutoMirrored.Filled.ViewList,
-      secondOptionIcon = Icons.Filled.GridView,
-      isFirstOptionSelected = mediaLayoutMode == MediaLayoutMode.LIST,
-      onViewModeChange = { isFirstOption ->
-        browserPreferences.mediaLayoutMode.set(
-          if (isFirstOption) MediaLayoutMode.LIST else MediaLayoutMode.GRID
-        )
-      },
-    ),
     contentToggles = listOf(
-      ContentToggle(
-        label = stringResource(R.string.filter_audio_files),
-        checked = showAudioFiles,
-        onCheckedChange = { browserPreferences.showAudioFiles.set(it) },
-      ),
       ContentToggle(
         label = stringResource(R.string.filter_show_nomedia_folders),
         checked = includeNoMediaContent,
@@ -1151,39 +955,14 @@ fun VideoSortDialog(
     visibilityToggles =
       listOf(
         VisibilityToggle(
-          label = stringResource(R.string.field_video_thumbnails),
-          checked = showVideoThumbnails,
-          onCheckedChange = { browserPreferences.showVideoThumbnails.set(it) },
-        ),
-        VisibilityToggle(
-          label = stringResource(R.string.field_full_name),
-          checked = unlimitedNameLines,
-          onCheckedChange = { appearancePreferences.unlimitedNameLines.set(it) },
-        ),
-        VisibilityToggle(
-          label = stringResource(R.string.path),
-          checked = showFolderPath,
-          onCheckedChange = { browserPreferences.showFolderPath.set(it) },
-        ),
-        VisibilityToggle(
-          label = stringResource(R.string.field_total_videos),
-          checked = showTotalVideosChip,
-          onCheckedChange = { browserPreferences.showTotalVideosChip.set(it) },
+          label = stringResource(R.string.field_file_size),
+          checked = showSizeChip,
+          onCheckedChange = { browserPreferences.showSizeChip.set(it) },
         ),
         VisibilityToggle(
           label = stringResource(R.string.field_total_duration),
           checked = showTotalDurationChip,
           onCheckedChange = { browserPreferences.showTotalDurationChip.set(it) },
-        ),
-        VisibilityToggle(
-          label = stringResource(R.string.field_folder_size),
-          checked = showTotalSizeChip,
-          onCheckedChange = { browserPreferences.showTotalSizeChip.set(it) },
-        ),
-        VisibilityToggle(
-          label = stringResource(R.string.field_file_size),
-          checked = showSizeChip,
-          onCheckedChange = { browserPreferences.showSizeChip.set(it) },
         ),
         VisibilityToggle(
           label = stringResource(R.string.field_resolution),
@@ -1196,19 +975,14 @@ fun VideoSortDialog(
           onCheckedChange = { browserPreferences.showFramerateInResolution.set(it) },
         ),
         VisibilityToggle(
-          label = stringResource(R.string.sort_type_date),
-          checked = showDateChip,
-          onCheckedChange = { browserPreferences.showDateChip.set(it) },
+          label = stringResource(R.string.field_total_videos),
+          checked = showTotalVideosChip,
+          onCheckedChange = { browserPreferences.showTotalVideosChip.set(it) },
         ),
         VisibilityToggle(
-          label = stringResource(R.string.field_progress_bar),
-          checked = showProgressBar,
-          onCheckedChange = { browserPreferences.showProgressBar.set(it) },
-        ),
-        VisibilityToggle(
-          label = stringResource(R.string.field_subtitle_indicator),
-          checked = showSubtitleIndicator,
-          onCheckedChange = { browserPreferences.showSubtitleIndicator.set(it) },
+          label = stringResource(R.string.field_folder_size),
+          checked = showTotalSizeChip,
+          onCheckedChange = { browserPreferences.showTotalSizeChip.set(it) },
         ),
       ),
     folderGridColumnSelector = folderGridColumnSelector,
@@ -1224,24 +998,17 @@ fun FileSystemSortDialog(
 ) {
   val backstack = LocalBackStack.current
   val browserPreferences = koinInject<BrowserPreferences>()
-  val appearancePreferences = koinInject<AppearancePreferences>()
   val folderViewMode by browserPreferences.folderViewMode.collectAsState()
   val folderSortType by browserPreferences.folderSortType.collectAsState()
   val folderSortOrder by browserPreferences.folderSortOrder.collectAsState()
-  val showVideoThumbnails by browserPreferences.showVideoThumbnails.collectAsState()
   val showTotalVideosChip by browserPreferences.showTotalVideosChip.collectAsState()
   val showTotalSizeChip by browserPreferences.showTotalSizeChip.collectAsState()
-  val showFolderPath by browserPreferences.showFolderPath.collectAsState()
   val showSizeChip by browserPreferences.showSizeChip.collectAsState()
   val showResolutionChip by browserPreferences.showResolutionChip.collectAsState()
   val showFramerateInResolution by browserPreferences.showFramerateInResolution.collectAsState()
-  val showProgressBar by browserPreferences.showProgressBar.collectAsState()
-  val showSubtitleIndicator by browserPreferences.showSubtitleIndicator.collectAsState()
-  val unlimitedNameLines by appearancePreferences.unlimitedNameLines.collectAsState()
   val showAudioFiles by browserPreferences.showAudioFiles.collectAsState()
   val includeNoMediaContent by browserPreferences.includeNoMediaContent.collectAsState()
   val showTotalDurationChip by browserPreferences.showTotalDurationChip.collectAsState()
-  val showDateChip by browserPreferences.showDateChip.collectAsState()
   val mediaLayoutMode by browserPreferences.mediaLayoutMode.collectAsState()
   val folderGridColumnsPortrait by browserPreferences.folderGridColumnsPortrait.collectAsState()
   val folderGridColumnsLandscape by browserPreferences.folderGridColumnsLandscape.collectAsState()
@@ -1306,67 +1073,7 @@ fun FileSystemSortDialog(
       Icons.Filled.SwapVert,
     ),
     showSortOptions = true,
-    viewModeSelector = MultiViewModeSelector(
-      label = stringResource(R.string.view_mode),
-      options = listOf(
-        ViewModeOption(
-          label = stringResource(R.string.view_mode_folder),
-          icon = Icons.Filled.ViewModule,
-          isSelected = folderViewMode == FolderViewMode.AlbumView,
-          onClick = {
-            browserPreferences.folderViewMode.set(FolderViewMode.AlbumView)
-            while (backstack.size > 1) {
-              backstack.removeLastOrNull()
-            }
-          }
-        ),
-        ViewModeOption(
-          label = stringResource(R.string.view_mode_tree),
-          icon = Icons.Filled.AccountTree,
-          isSelected = folderViewMode == FolderViewMode.FileManager,
-          onClick = {
-            browserPreferences.folderViewMode.set(FolderViewMode.FileManager)
-            while (backstack.size > 1) {
-              backstack.removeLastOrNull()
-            }
-          }
-        ),
-        ViewModeOption(
-          label = stringResource(R.string.view_mode_library),
-          icon = Icons.Filled.VideoLibrary,
-          isSelected = folderViewMode == FolderViewMode.MediaLibrary,
-          onClick = {
-            browserPreferences.folderViewMode.set(FolderViewMode.MediaLibrary)
-            while (backstack.size > 1) {
-              backstack.removeLastOrNull()
-            }
-          }
-        )
-      )
-    ),
-    layoutModeSelector = ViewModeSelector(
-      label = stringResource(R.string.layout),
-      firstOptionLabel = stringResource(R.string.layout_mode_list),
-      secondOptionLabel = stringResource(R.string.layout_mode_grid),
-      firstOptionIcon = Icons.AutoMirrored.Filled.ViewList,
-      secondOptionIcon = Icons.Filled.GridView,
-      isFirstOptionSelected = mediaLayoutMode == MediaLayoutMode.LIST,
-      onViewModeChange = { isFirstOption ->
-        browserPreferences.mediaLayoutMode.set(
-          if (isFirstOption) MediaLayoutMode.LIST
-          else MediaLayoutMode.GRID
-        )
-      },
-    ),
-    folderGridColumnSelector = folderGridColumnSelector,
-    videoGridColumnSelector = videoGridColumnSelector,
-    enableLayoutModeOptions = true, // Enabled for FileSystem/Tree view too!
     contentToggles = listOf(
-      ContentToggle(
-        label = stringResource(R.string.filter_audio_files),
-        checked = showAudioFiles,
-        onCheckedChange = { browserPreferences.showAudioFiles.set(it) },
-      ),
       ContentToggle(
         label = stringResource(R.string.filter_show_nomedia_folders),
         checked = includeNoMediaContent,
@@ -1375,39 +1082,14 @@ fun FileSystemSortDialog(
     ),
     visibilityToggles = listOf(
       VisibilityToggle(
-        label = stringResource(R.string.field_video_thumbnails),
-        checked = showVideoThumbnails,
-        onCheckedChange = { browserPreferences.showVideoThumbnails.set(it) },
-      ),
-      VisibilityToggle(
-        label = stringResource(R.string.field_full_name),
-        checked = unlimitedNameLines,
-        onCheckedChange = { appearancePreferences.unlimitedNameLines.set(it) },
-      ),
-      VisibilityToggle(
-        label = stringResource(R.string.path),
-        checked = showFolderPath,
-        onCheckedChange = { browserPreferences.showFolderPath.set(it) },
-      ),
-      VisibilityToggle(
-        label = stringResource(R.string.field_total_videos),
-        checked = showTotalVideosChip,
-        onCheckedChange = { browserPreferences.showTotalVideosChip.set(it) },
+        label = stringResource(R.string.field_file_size),
+        checked = showSizeChip,
+        onCheckedChange = { browserPreferences.showSizeChip.set(it) },
       ),
       VisibilityToggle(
         label = stringResource(R.string.field_total_duration),
         checked = showTotalDurationChip,
         onCheckedChange = { browserPreferences.showTotalDurationChip.set(it) },
-      ),
-      VisibilityToggle(
-        label = stringResource(R.string.field_folder_size),
-        checked = showTotalSizeChip,
-        onCheckedChange = { browserPreferences.showTotalSizeChip.set(it) },
-      ),
-      VisibilityToggle(
-        label = stringResource(R.string.field_file_size),
-        checked = showSizeChip,
-        onCheckedChange = { browserPreferences.showSizeChip.set(it) },
       ),
       VisibilityToggle(
         label = stringResource(R.string.field_resolution),
@@ -1420,68 +1102,15 @@ fun FileSystemSortDialog(
         onCheckedChange = { browserPreferences.showFramerateInResolution.set(it) },
       ),
       VisibilityToggle(
-        label = stringResource(R.string.sort_type_date),
-        checked = showDateChip,
-        onCheckedChange = { browserPreferences.showDateChip.set(it) },
+        label = stringResource(R.string.field_total_videos),
+        checked = showTotalVideosChip,
+        onCheckedChange = { browserPreferences.showTotalVideosChip.set(it) },
       ),
       VisibilityToggle(
-        label = stringResource(R.string.field_progress_bar),
-        checked = showProgressBar,
-        onCheckedChange = { browserPreferences.showProgressBar.set(it) },
-      ),
-      VisibilityToggle(
-        label = stringResource(R.string.field_subtitle_indicator),
-        checked = showSubtitleIndicator,
-        onCheckedChange = { browserPreferences.showSubtitleIndicator.set(it) },
+        label = stringResource(R.string.field_folder_size),
+        checked = showTotalSizeChip,
+        onCheckedChange = { browserPreferences.showTotalSizeChip.set(it) },
       ),
     )
-  )
-}
-
-/**
- * Sort options for a network share.
- *
- * Only title, date and size are offered: a folder listing over SMB carries name, timestamp and
- * size, but not duration, and probing every remote file for it would mean opening each one.
- */
-@Composable
-fun NetworkSortDialog(
-  isOpen: Boolean,
-  onDismiss: () -> Unit,
-) {
-  val browserPreferences = koinInject<BrowserPreferences>()
-  val sortType by browserPreferences.networkSortType.collectAsState()
-  val sortOrder by browserPreferences.networkSortOrder.collectAsState()
-
-  SortDialog(
-    isOpen = isOpen,
-    onDismiss = onDismiss,
-    title = stringResource(R.string.sort_and_view_options),
-    sortType = sortType.displayName,
-    onSortTypeChange = { typeName ->
-      FolderSortType.entries.find { it.displayName == typeName }?.let { newType ->
-        if (newType == sortType) {
-          val newOrder = if (sortOrder.isAscending) SortOrder.Descending else SortOrder.Ascending
-          browserPreferences.saveNetworkSortOrder(newType, newOrder)
-        } else {
-          browserPreferences.setNetworkSortType(newType)
-        }
-      }
-    },
-    sortOrderAsc = sortOrder.isAscending,
-    onSortOrderChange = { isAsc ->
-      val newOrder = if (isAsc) SortOrder.Ascending else SortOrder.Descending
-      browserPreferences.saveNetworkSortOrder(sortType, newOrder)
-    },
-    types = listOf(FolderSortType.Title.displayName, FolderSortType.Date.displayName, FolderSortType.Size.displayName),
-    typeLabels = listOf(stringResource(FolderSortType.Title.stringRes), stringResource(FolderSortType.Date.stringRes), stringResource(FolderSortType.Size.stringRes)),
-    icons = listOf(
-      Icons.Filled.Title,
-      Icons.Filled.CalendarToday,
-      Icons.Filled.SwapVert,
-    ),
-    showSortOptions = true,
-    enableViewModeOptions = false,
-    enableLayoutModeOptions = false,
   )
 }

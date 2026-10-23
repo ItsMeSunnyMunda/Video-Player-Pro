@@ -188,19 +188,7 @@ fun BaseMediaCard(
                         )
                     }
                     
-                    // Progress Bar
-                    if (progressPercentage != null && !isWatched) {
-                        LinearProgressIndicator(
-                            progress = { progressPercentage },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(4.dp)
-                                .align(Alignment.BottomCenter)
-                                .clip(RoundedCornerShape(bottomStart = 14.dp, bottomEnd = 14.dp)),
-                            color = MaterialTheme.colorScheme.primary,
-                            trackColor = Color.Black.copy(alpha = 0.35f),
-                        )
-                    }
+
                     
                     androidx.compose.animation.AnimatedVisibility(
                         visible = isSelected,
@@ -329,19 +317,7 @@ fun BaseMediaCard(
                         )
                     }
 
-                    // Progress Bar
-                    if (progressPercentage != null && !isWatched) {
-                        LinearProgressIndicator(
-                            progress = { progressPercentage },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(3.dp)
-                                .align(Alignment.BottomCenter)
-                                .clip(RoundedCornerShape(bottomStart = 14.dp, bottomEnd = 14.dp)),
-                            color = MaterialTheme.colorScheme.primary,
-                            trackColor = Color.Black.copy(alpha = 0.35f),
-                        )
-                    }
+
 
                     androidx.compose.animation.AnimatedVisibility(
                         visible = isSelected,

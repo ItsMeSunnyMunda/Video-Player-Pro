@@ -367,10 +367,7 @@ class FileSystemBrowserViewModel(
                       basicNewIds.add(video.id)
                     }
                   } else {
-                    val videoAge = basicCurrentTime - (video.dateModified * 1000)
-                    if (videoAge <= basicThresholdMillis) {
-                      basicNewIds.add(video.id)
-                    }
+                    basicNewIds.add(video.id)
                   }
                   item.copy(video = updatedVideo)
                 } else {
@@ -441,10 +438,7 @@ class FileSystemBrowserViewModel(
                             finalNewIds.add(video.id)
                           }
                         } else {
-                          val videoAge = finalCurrentTime - (video.dateModified * 1000)
-                          if (videoAge <= finalThresholdMillis) {
-                            finalNewIds.add(video.id)
-                          }
+                          finalNewIds.add(video.id)
                         }
                         item.copy(video = video)
                       }

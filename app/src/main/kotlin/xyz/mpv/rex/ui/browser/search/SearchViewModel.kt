@@ -262,10 +262,7 @@ class SearchViewModel(
           newIds.add(video.id)
         }
       } else {
-        val videoAge = currentTime - (video.dateModified * 1000)
-        if (videoAge <= thresholdMillis) {
-          newIds.add(video.id)
-        }
+        newIds.add(video.id)
       }
     }
     _videoFilesWithPlayback.value = playbackMap

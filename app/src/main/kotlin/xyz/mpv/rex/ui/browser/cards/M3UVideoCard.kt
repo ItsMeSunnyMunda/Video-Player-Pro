@@ -109,7 +109,7 @@ fun M3UVideoCard(
     }
   }
 
-  val maxLines = if (uiSettings.unlimitedNameLines) Int.MAX_VALUE else 2
+  val maxLines = 2
 
   BaseMediaCard(
     title = title,

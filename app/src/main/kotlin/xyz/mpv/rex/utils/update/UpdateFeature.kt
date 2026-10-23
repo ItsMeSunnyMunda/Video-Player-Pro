@@ -443,7 +443,6 @@ class UpdateManager(
 class UpdateViewModel(application: Application) : AndroidViewModel(application) {
 
     private val updateManager = UpdateManager(application)
-    private val ytdlpUpdateManager = YtdlpUpdateManager(application)
 
     private val _updateState = MutableStateFlow<UpdateState>(UpdateState.Idle)
     val updateState: StateFlow<UpdateState> = _updateState.asStateFlow()
@@ -473,69 +472,10 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    // --- Companion (REX-Ytdlp APK) update state ---
-
-    private val _companionUpdateState = MutableStateFlow<UpdateState>(UpdateState.Idle)
-    val companionUpdateState: StateFlow<UpdateState> = _companionUpdateState.asStateFlow()
-
-    private val _isCompanionInstalled = MutableStateFlow(ytdlpUpdateManager.isCompanionInstalled())
-    val isCompanionInstalled: StateFlow<Boolean> = _isCompanionInstalled.asStateFlow()
-
-    private val _isYtdlpAutoUpdateEnabled = MutableStateFlow(
-        if (BuildConfig.ENABLE_UPDATE_FEATURE) prefs.getBoolean("ytdlp_auto_update", true) else false
-    )
-    val isYtdlpAutoUpdateEnabled: StateFlow<Boolean> = _isYtdlpAutoUpdateEnabled.asStateFlow()
-
-    fun toggleYtdlpAutoUpdate(enabled: Boolean) {
-        if (!BuildConfig.ENABLE_UPDATE_FEATURE) return
-        prefs.edit().putBoolean("ytdlp_auto_update", enabled).apply()
-        _isYtdlpAutoUpdateEnabled.value = enabled
-        if (enabled) checkCompanionUpdate(manual = false)
-    }
-
-    fun refreshCompanionInstalled() {
-        _isCompanionInstalled.value = ytdlpUpdateManager.isCompanionInstalled()
-    }
-
-    fun ytdlpInstalledVersion(): String? = ytdlpUpdateManager.installedVersion()
-
-    fun checkCompanionUpdate(manual: Boolean = false) {
-        if (!BuildConfig.ENABLE_UPDATE_FEATURE) return
-        refreshCompanionInstalled()
-        if (!_isCompanionInstalled.value) return
-        viewModelScope.launch {
-            _companionUpdateState.value = UpdateState.Loading
-            try {
-                val release = ytdlpUpdateManager.checkForUpdate(forceShow = manual)
-                _companionUpdateState.value = when {
-                    release != null -> UpdateState.Available(release)
-                    manual -> UpdateState.NoUpdate
-                    else -> UpdateState.Idle
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-                _companionUpdateState.value = if (manual) UpdateState.Error else UpdateState.Idle
-            }
-        }
-    }
-
-    fun dismissCompanionNoUpdate() {
-        _companionUpdateState.value = UpdateState.Idle
-    }
-
-    fun ignoreYtdlpVersion(version: String) {
-        ytdlpUpdateManager.ignoreVersion(version)
-        _companionUpdateState.value = UpdateState.Idle
-    }
-
     init {
         // Only initialize auto-update if feature is enabled
         if (BuildConfig.ENABLE_UPDATE_FEATURE && isAutoUpdateEnabled.value) {
             checkForUpdate(manual = false)
-        }
-        // Companion auto-check only when addon is present (your conditional).
-        if (BuildConfig.ENABLE_UPDATE_FEATURE && _isCompanionInstalled.value && _isYtdlpAutoUpdateEnabled.value) {
-            checkCompanionUpdate(manual = false)
         }
     }
 
